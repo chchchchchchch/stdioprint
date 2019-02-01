@@ -1,0 +1,239 @@
+  \usepackage[utf8]{inputenc}
+  \usepackage[ngerman]{babel}
+  \renewcommand{\encodingdefault}{T1}
+
+  \usepackage{bophook}
+
+ % https://tex.stackexchange.com/questions/16199/
+ % -> test-if-a-package-or-package-option-is-loaded
+ %\@ifpackageloaded{<name>}{<true>}{<false>}
+  \@ifpackageloaded{pdfx}
+   {} % LOADED BY ../lib/mdsh/book-A5.functions
+   {\usepackage[x-1a]{pdfx}} 
+
+ % https://tex.stackexchange.com/questions/89013/
+ % -> pdfx-package-gives-me-option-clash-for-package-hyperref
+  \@ifpackageloaded{hyperref}
+   {\hypersetup{hidelinks}}
+   {\usepackage[hidelinks]{hyperref}}
+
+
+  \usepackage{scalefnt}
+  \usepackage{setspace}
+  \usepackage{relsize}
+  \usepackage[activate={true,nocompatibility},
+              final,tracking=true,kerning=true,
+              spacing=true,factor=1100,
+              stretch=10,shrink=10]{microtype}
+  \usepackage[defaultlines=5,all]{nowidow}
+  \usepackage{eurosym} % https://tex.stackexchange.com/a/109267
+  \let\texteuro\euro
+  \usepackage{pdfpages}
+  \usepackage{fancyhdr}
+  \usepackage{sectsty}
+  \usepackage{footmisc}
+
+ %\usepackage{textcomp}
+ %\usepackage{pifont}
+  \usepackage{xcolor}
+ %\usepackage{eso-pic}
+
+  \usepackage{ragged2e} % \justifying
+ %\usepackage{everypage}
+ %\usepackage{needspace}
+ %\usepackage{afterpage}
+  \usepackage{etoolbox}
+
+  \usepackage{seqsplit}
+
+
+% --------------------------------------------------------------------------- %
+%  F O R M A T 
+% --------------------------------------------------------------------------- %
+  \setlength\topmargin{-.09\paperheight}
+  \setlength{\headsep}{2mm}
+
+  \setlength\oddsidemargin{-.065\paperwidth}
+  \setlength\evensidemargin{-.060\paperwidth}
+
+  \setlength\textwidth{.75\paperwidth}
+  \setlength\textheight{.81\paperheight}
+
+  \setlength\marginparsep{2mm}
+  \setlength\marginparwidth{5mm}
+
+  \setlength{\skip\footins}{.1\paperheight}
+
+% --------------------------------------------------------------------------- %
+%  F U N C T I O N A L 
+% --------------------------------------------------------------------------- %
+
+  % PREVENT HYPHENATION FOR WORDS STARTING WITH UPPERCASE
+  % \uchyph=0
+  % PREVENT HYPHENATION OVER PAGE BREAK
+  \brokenpenalty10000\relax
+
+ %\newcommand{\setwidowstandard}{\setnowidow[5]\setnoclub[5]}
+ %\setwidowstandard
+
+  % https://groups.google.com/forum/#!topic/pandoc-discuss/O-N0H1eBnVU
+  \let\oldhref=\href 
+  \renewcommand{\href}[2]{#2\footnote{%
+               {\fontfamily{ipm}\selectfont\color{risoone}%
+                \footnotesize\seqsplit{#1}}}}
+
+  \DeclareUnicodeCharacter{00A0}{\,}
+
+% --------------------------------------------------------------------------- %
+%  C O L O R S
+% --------------------------------------------------------------------------- %
+  \definecolor{risoone}{cmyk}{1,0,0,0}
+
+% --------------------------------------------------------------------------- %
+%  F O N T S
+% --------------------------------------------------------------------------- %
+  \newcommand{\ttstandard}{grm}
+  \newcommand{\rmstandard}{iad}
+  \newcommand{\sfstandard}{iad}
+
+  \renewcommand*{\ttdefault}{\ttstandard}\selectfont
+  \renewcommand*{\rmdefault}{\rmstandard}\selectfont
+  \renewcommand*{\sfdefault}{\sfstandard}\selectfont
+  
+% --------------------------------------------------------------------------- %
+%  T E X T  A L I G N M E N T
+% --------------------------------------------------------------------------- %
+  \newcommand{\ragged}{\RaggedRight}
+  \newcommand{\justified}{\justifying\parindent=0pt}
+
+% --------------------------------------------------------------------------- %
+%  W H I T E S P A C E
+% --------------------------------------------------------------------------- %
+  \parindent=0pt
+  \setlength{\parskip}{5pt plus 5pt minus 5pt}
+  \setstretch{1.1} % LINEHEIGHT % (P:setspace)
+
+% --------------------------------------------------------------------------- %
+%  H E A D L I N E S
+% --------------------------------------------------------------------------- %
+  % REMOVE NUMBERING
+  % https://tex.stackexchange.com/questions/80113/
+  % -> hide-section-numbers-but-keep-numbering
+  \renewcommand*{\chapterformat}{}
+
+  \let\CHAPTER\chapter
+ %\renewcommand\chapter[1]{\CHAPTER{#1}}
+  \renewcommand\chapter[1]{\CHAPTER{\uppercase{#1}}}
+  \chapterfont{\large\setstretch{1.0}}
+
+  \let\SECTION\section
+ %\renewcommand\section[1]{\SECTION*{#1}}
+  \renewcommand\section[1]{\SECTION*{\uppercase{#1}}}
+  \sectionfont{\relscale{1.0}\setstretch{0.7}}
+ %\renewcommand\section[1]{\SECTION*{{\fontfamily{pju}\selectfont\emph{#1}}}}
+ %\sectionfont{\relscale{1.5}\setstretch{0.5}}
+
+  \let\SUBSECTION\subsection
+ %\renewcommand\subsection[1]{\SUBSECTION*{#1}}
+  \renewcommand\subsection[1]{\SUBSECTION*{\uppercase{#1}}}
+  \subsectionfont{\relscale{0.9}}
+
+  \let\SUBSUBSECTION\subsubsection
+ %\renewcommand\subsubsection[1]{\SUBSUBSECTION*{#1}}
+  \renewcommand\subsubsection[1]{\SUBSUBSECTION*{\uppercase{#1}}}
+
+
+% --------------------------------------------------------------------------- %
+%  F O O T N O T E S 
+% --------------------------------------------------------------------------- %
+  \renewcommand{\footnotelayout}{\raggedright}
+
+  % https://tex.stackexchange.com/questions/4779
+  \makeatletter
+  \patchcmd{\@footnotetext}{\footnotesize}{%
+                            \normalsize\fontfamily{pju}\selectfont%
+  }{}{}
+  \makeatother
+
+% SMALLER DISTANCE FOOTNOTENUMBER AND TEXT
+  \let\oldfootnote\footnote
+% \, = small non-breaking space
+  \renewcommand\footnote[1]{\,\oldfootnote{#1}}
+  \setlength{\footnotemargin}{0em}
+ % ABSTAND TRENNLINIE FUSSNOTEN
+   \renewcommand{\footnoterule}{
+    \vspace*{5mm}
+     \noindent
+      \rule{\textwidth}{0.0pt}{
+       \vspace*{-3pt}
+  }}
+
+ \renewcommand{\thefootnote}{%
+              {\color{risoone}%
+               \fontfamily{iad}\selectfont%
+               \textbf\arabic{footnote}%
+               \hspace{.2em}%
+              }
+ }
+
+% --------------------------------------------------------------------------- %
+%  P A G E   H E A D E R /  F O O T E R
+% --------------------------------------------------------------------------- %
+
+  % http://texblog.org/2007/11/07/headerfooter-in-latex-with-fancyhdr
+  \pagestyle{fancy}
+  \fancyhead{} % CLEAR DEFAULT
+  \fancyfoot{} % CLEAR DEFAULT
+  \renewcommand{\headrulewidth}{0pt}
+% \fancyfoot[LO]{\vspace{-10mm}%
+%                \hspace{-10mm} {\scriptsize\thepage}%
+%               }
+% \fancyfoot[RE]{\vspace{-10mm}%
+%               {\scriptsize\thepage} \hspace{-10mm}%
+%               }
+
+% % http://tex.stackexchange.com/questions/114956/
+% % -> how-to-insert-footer-in-first-pages-of-chapter 
+  \fancypagestyle{plain}{}
+% \fancypagestyle{plain}{%
+% \fancyfoot[LO]{\vspace{-12mm} \hspace{-16mm} {\scriptsize\thepage}}
+% \fancyfoot[RE]{\vspace{-12mm} {\scriptsize\thepage} \hspace{-16mm}}
+% }
+
+% \fancyfoot[LO]{\vspace{-10mm}%
+%                \hspace{-10mm} {\scriptsize\RomanNumeralCaps{\thepage}}%
+%               }
+% \fancyfoot[RE]{\vspace{-10mm}%
+%               {\scriptsize\RomanNumeralCaps{\thepage}} \hspace{-10mm}%
+%               }
+
+
+% --------------------------------------------------------------------------- %
+%  P A G E   C O M M A N D S
+% --------------------------------------------------------------------------- %
+
+% --------------------------------------------------------------------------- %
+  \newcommand{\emptypage}{ % SOMEHOW HACKY
+   \twocolumn[]\thispagestyle{empty} %
+    \onecolumn %
+  }
+% --------------------------------------------------------------------------- %
+  \newcommand\cleartoleft{%
+  \clearpage
+  \ifthispageodd{\emptypage}{}
+  }
+% --------------------------------------------------------------------------- %
+  \newcommand\cleartoright{%
+  \clearpage
+  % http://tex.stackexchange.com/questions/6143/
+  % -> if-then-else-for-odd-page-even-page
+  \ifthispageodd{}{\emptypage}
+  }
+
+% --------------------------------------------------------------------------- %
+%  V A R   C O M M A N D S
+% --------------------------------------------------------------------------- %
+
+  \newcommand{\RomanNumeralCaps}[1]
+  {\MakeUppercase{\romannumeral #1}}
+

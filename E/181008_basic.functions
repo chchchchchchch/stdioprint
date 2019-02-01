@@ -1,0 +1,82 @@
+# --------------------------------------------------------------------------- #
+
+function HYPHENATE() {
+
+  N=`echo $* | sed 's/ /\n/g' | #
+     sed '/^[^0-9]\+$/d' | tail -n 1`
+  if [ "$N" == "" ];then N=1; fi
+
+  UNHYPHENATED=`echo $* | sed 's/ /\n/g'       | #
+                sed '/^[0-9]\+$/d' | head -n 1 | #
+                sed 's/-//g' | $PANDOCACTION   | #
+                sed 's,\\\\,\\\\\\\\\\\,g'`      #
+  HYPHENATIZED=`echo $*             | #
+                sed 's/ /\n/g'      | #
+                sed '/^[0-9]\+$/d'  | #
+                head -n 1           | #
+                $PANDOCACTION       | #
+                sed 's/\\_/\\\\_/g' | #
+                sed 's,-,\\\\\\\-,g'` #
+
+  for N in `seq $N`
+   do
+      LNHYPH=`grep -n "$UNHYPHENATED" $SRCDUMP | #
+              tail -n 1 | cut -d ":" -f 1 `      #
+      if [ "$LNHYPH" != "" ];then
+        if [ "$OUTPUTFORMAT" == pdf ];then
+              sed -i "${LNHYPH}s/$UNHYPHENATED/$HYPHENATIZED/" $SRCDUMP
+        fi
+      fi
+  done
+
+}
+
+# --------------------------------------------------------------------------- #
+
+function CLEARTOLEFT() {
+
+    if [ "$OUTPUTFORMAT" == pdf ];then
+
+         write2src "\cleartoleft"
+    fi
+}
+
+# --------------------------------------------------------------------------- #
+
+function CLEARTORIGHT() {
+
+    if [ "$OUTPUTFORMAT" == pdf ];then
+
+         write2src "\cleartoright"
+    fi
+}
+
+# --------------------------------------------------------------------------- #
+
+function EMPTYPAGE() {
+
+    if [ "$OUTPUTFORMAT" == pdf ];then
+
+         write2src "\emptypage"
+    fi
+}
+# --------------------------------------------------------------------------- #
+
+function NEWPAGE() {
+
+    if [ "$OUTPUTFORMAT" == pdf ];then
+
+         write2src "\newpage"
+    fi
+}
+
+# --------------------------------------------------------------------------- #
+
+function TEXIN() {
+
+    write2src "$*"
+
+}
+
+# --------------------------------------------------------------------------- #
+
