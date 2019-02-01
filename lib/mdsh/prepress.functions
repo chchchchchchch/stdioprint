@@ -1,0 +1,110 @@
+# http://freeze.sh/_/2016/preflight
+
+  ICCPATH="$SHDIR/../icc"
+
+  function pdfxgs() {
+
+       ICCNAME=`echo $* | sed 's/ /\n/g'   | #
+                grep "\.icc$" | head -n 1  | #
+                rev | cut -d "/" -f 1 | rev` #
+       ICCUSE=`find $ICCPATH -name "$ICCNAME" | head -n 1`
+       if [ ! -f "$ICCUSE" ]
+       then ICCUSE=`realpath $ICCPATH/Gray.icc`
+       fi
+
+       #PDF=$1
+        if [ `ls -a $1      | # SUPRESS IF  $1 IS EMPTY
+              head -n 1     | # SUPRESS IF  $1 IS EMPTY
+              grep "\.pdf$" | # CHECK IF ENDS WITH .pdf
+              wc -l` -gt 0  ]; then
+          cp $1 tmp.pdf
+            gs                                   \
+            -o $1                                \
+            -sDEVICE=pdfwrite                    \
+            -sColorConversionStrategy=Gray       \
+            -sProcessColorModel=DeviceGray       \
+            -sOutputICCProfile=$ICCUSE           \
+            -sColorImageDownsampleThreshold=2    \
+            -sColorImageDownsampleType=Bicubic   \
+            -sColorImageResolution=300           \
+            -sGrayImageDownsampleThreshold=2     \
+            -sGrayImageDownsampleType=Bicubic    \
+            -sGrayImageResolution=300            \
+            -sMonoImageDownsampleThreshold=2     \
+            -sMonoImageDownsampleType=Bicubic    \
+            -sMonoImageResolution=1200           \
+            -dSubsetFonts=true                   \
+            -dEmbedAllFonts=true                 \
+            -sCannotEmbedFontPolicy=Error        \
+            -dAutoRotatePages=/None              \
+            -dHaveTransparency=false             \
+            -c ".setpdfwrite<</NeverEmbed[ ]>> setdistillerparams" \
+            -f tmp.pdf > /dev/null
+          rm tmp.pdf
+        else echo "nothing to do!"
+        fi
+  }
+
+  function pdfxcmyk() {
+
+       ICCNAME=`echo $* | sed 's/ /\n/g'   | #
+                grep "\.icc$" | head -n 1  | #
+                rev | cut -d "/" -f 1 | rev` #
+       ICCUSE=`find $ICCPATH -name "$ICCNAME" | head -n 1`
+       if [ ! -f "$ICCUSE" ]
+       then ICCUSE=`realpath $ICCPATH/FOGRA39L.icc`
+       fi
+
+       #PDF=$1
+        if [ `ls -a $1      | # SUPRESS IF  $1 IS EMPTY
+              head -n 1     | # SUPRESS IF  $1 IS EMPTY
+              grep "\.pdf$" | # CHECK IF ENDS WITH .pdf
+              wc -l` -gt 0  ]; then
+          cp $1 tmp.pdf
+          gs -o $1                                \
+             -sDEVICE=pdfwrite                    \
+             -sColorConversionStrategy=CMYK       \
+             -sProcessColorModel=DeviceCMYK       \
+             -sOutputICCProfile=$ICCUSE           \
+             -sColorImageDownsampleThreshold=2    \
+             -sColorImageDownsampleType=Bicubic   \
+             -sColorImageResolution=300           \
+             -sGrayImageDownsampleThreshold=2     \
+             -sGrayImageDownsampleType=Bicubic    \
+             -sGrayImageResolution=300            \
+             -sMonoImageDownsampleThreshold=2     \
+             -sMonoImageDownsampleType=Bicubic    \
+             -sMonoImageResolution=1200           \
+             -dSubsetFonts=true                   \
+             -dEmbedAllFonts=true                 \
+             -sCannotEmbedFontPolicy=Error        \
+             -dAutoRotatePages=/None              \
+             -dHaveTransparency=false             \
+             -c ".setpdfwrite<</NeverEmbed[ ]>> setdistillerparams" \
+            -f tmp.pdf > /dev/null
+          rm tmp.pdf
+        else echo "nothing to do!"
+        fi
+  }
+
+ function conformColor() {
+
+      ( CHECK=$1
+        gs -dJPEGQ=20 -r50           \
+           -dNumRenderingThreads=4    \
+           -dNOPAUSE -sDEVICE=jpeg     \
+           -dFirstPage=1 -dLastPage=1   \
+           -sOutputFile=./checkcolor.jpg \
+           -q $CHECK -c quit
+        HASCOLOR=`convert checkcolor.jpg -colorspace HSL \
+                 -format '%[fx:maxima.g]' info: | sed 's/[^0-9]//g'`
+        if [ $HASCOLOR -eq 0 ]; then
+              pdfxgs $CHECK
+        else
+              pdfxcmyk $CHECK
+        fi
+        rm checkcolor.jpg
+      )
+
+  }
+

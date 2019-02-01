@@ -1,0 +1,103 @@
+# --------------------------------------------------------------------------- #
+
+function KEYWORDIZE() {
+
+  KEYWORDSRC=$1;IDSTAMP=`echo $KEYWORDSRC | md5sum | cut -c 1-10`
+  getFile $KEYWORDSRC ${TMPID}.${IDSTAMP}.tmp
+  cat ${TMPID}.${IDSTAMP}.tmp >> ${TMPID}.keywords
+  touch ${TMPID}X.verbatim # CREATE AT LEAST ONE VERBATIM FILE TO PREVENT ERROR
+
+  ( # A SUBSHELL => PROTECT VARIABLES
+
+     UN=U`echo $RANDOM | cut -c 1-2`N
+      S=S`echo $RANDOM | cut -c 1-2`P
+   SFOO=S`echo $RANDOM | cut -c 1-2`S
+
+   # PROTECT EMPTY LINES
+   # -------------------
+     sed -i "s/^[ \t]*$/E${UN}L/" $SRCDUMP
+
+   # PUT WORDS ON SEPARATE LINES
+   # ---------------------------
+     sed -i "s/[ ]\+/ $SFOO\n/g"  $SRCDUMP
+
+   IFS=$'\n'
+   for INDEXTHIS in `cat ${TMPID}.keywords         | # TAKE LIST
+                     egrep -v "^#|^%"              | # IGNORE SOMETHING
+                     sed '/^[ \t]*$/d'             | # NO EMPTY LINES
+                     awk 'BEGIN { FS = "|" } ; \
+                     { print length($1) ":" $0; }' | # ADD LENGTH OF FIELD 1
+                     sort -n                       | # NUMERIC SORT (=LENGTH)
+                     cut -d ":" -f 2-              | # REMOVE LENGTH AGAIN
+                     tac`                            # REVERT (LONGEST FIRST)
+    do
+       MAINKEYWORD=`echo $INDEXTHIS | # START
+                    cut -d "|" -f 1`  # SELECT FIRST FIELD
+       MAINFOO=`echo $MAINKEYWORD   | # PIPE STARTS
+                sed  "s/./&M$UN/g"  | # ADD UNID TO EACH LETTER
+                sed  "s/ /M$S/g"    | # PROTECT/RM SPACE
+                sed 's/\//\\\\\//g'`  # ESCAPE \ FOR sed
+
+       for KEYWORD in `echo $INDEXTHIS                   | # START
+                       sed 's/|/\n/g'                    | # PIPE TO NEWLINE
+                       awk '{ print length($1) ":" $0; }'| # PRINT LENGTH
+                       sort -n | cut -d ":" -f 2- | tac`   # SORT, CLEAN, REVERT
+       do
+           K=`echo $KEYWORD       | # START
+              sed 's/\//\\\\\//g' | # ESCAPE \ FOR sed
+              sed 's/\./\\\./g'`    # ESCAPE \ FOR sed
+         # solved via LaTeX (for section so far ...)
+         # set +H;
+         # ADD \index TO END OF LINE
+           sed -i "s/\(.*\)\(\b$K\b\)\(.*\)/\1K${UN}\2K${UN}\3 \\\index{$MAINFOO}$SFOO/I" $SRCDUMP
+           sed -i "s/\b$K\b/K${UN}&K${UN}°\\\index{$MAINFOO}°/I" ${TMPID}*.verbatim
+       done
+       sed -i "s/K$UN//g" $SRCDUMP ${TMPID}*.verbatim # NORMALIZE PROTECTED KEYWORD
+
+   done
+
+   sed -i "s/M$UN//g" $SRCDUMP ${TMPID}*.verbatim     # NORMALIZE PROTECTED KEYWORD ANCHOR
+   sed -i "s/M$S/ /g" $SRCDUMP ${TMPID}*.verbatim     # NORMALIZE PROTECTED KEYWORD ANCHOR
+
+  # RESET (PUT WORDS ON SEPARATE LINES)
+  # -----------------------------------
+    sed -i -e ":a;N;\$!ba;s/$SFOO\n/ /g" \
+        -i -e "s/$SFOO/ /g" -i -e "s/[ ]\+/ /g" $SRCDUMP
+
+  # RESET (PROTECT EMPTY LINES)
+  # --------------------------
+    sed -i "s/E${UN}L/\n/" $SRCDUMP
+
+   ) # END SUBSHELL
+
+   if [ "$OUTPUTFORMAT" == "pdf" ];then
+
+        echo 'preamble
+             "\\begin{theindex}\n\\pagestyle{fancy}\n"
+               postamble "\n\n\\end{theindex}\n"' > ${TMPID}.ist
+
+        write2src "\insertindex{$KWID}"
+
+   elif [ "$OUTPUTFORMAT" == "html" ];then
+
+       for ANCHOR in `sed 's/\\\index{[^}]*}/\n&\n/g' $SRCDUMP | #
+                       grep -- '\index{.*}$' | sort -u`
+        do
+           KEYWORD=`echo $ANCHOR | cut -d "{" -f 2 | cut -d "}" -f 1`
+           CNT=1
+           for MATCH in `grep -n "$ANCHOR" $SRCDUMP | cut -d ":" -f 1`
+            do
+               ID=`echo $KEYWORD$CNT | md5sum | cut -c 1-8`
+               O="<span class=\"k\" id=\"$ID\">";C="<\/span>"
+               sed -i "${MATCH}s/\b[^ >]*$ANCHOR/$O&$C/" $SRCDUMP
+              #echo ${ID}:${KEYWORD}
+               CNT=`expr $CNT + 1`
+           done
+       done
+
+       sed -i 's/\\index{[^}]*}//g' $SRCDUMP
+  fi
+
+}
+
+# --------------------------------------------------------------------------- ##

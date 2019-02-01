@@ -1,0 +1,448 @@
+# --------------------------------------------------------------------------- #
+# GLOBAL REUSE
+# --------------------------------------------------------------------------- #
+# ONLY SET ONCE (FOR NOW. TO BE CLEANED)
+  if [ `echo $EMPTYLINE | wc -c` -lt 10 ]; then
+        MKLONG=`printf "X%.0s" {1..100}`
+        EMPTYLINE=`echo $RANDOM | md5sum | cut -d " " -f 1`$MKLONG
+        APND=A${RANDOM}ND
+        ESC=ES${RANDOM}C
+        SHORTURLBASE="http://lfkn.de"
+          SHORTURLOG="shorturls.log"
+        FID=`date +%s%N`; echo $FID >> ${TMPID}.fid
+  fi
+
+# --------------------------------------------------------------------------- #
+# WRITE TO DUMP
+# --------------------------------------------------------------------------- #
+  function write2src() { echo "$*" >> $SRCDUMP ; }
+# --------------------------------------------------------------------------- #
+
+# --------------------------------------------------------------------------- #
+# MAKE LOCAL IF NECESSARY
+# --------------------------------------------------------------------------- #
+  WGETLOG=${TMPID}.wget
+
+  function getFile() {
+
+  SOURCE="$1" ; TARGET="$2"
+
+    if [ `echo $TARGET | wc -c` -lt 2 ]; then SUCCESS="NO"
+         #echo "No target provided! Skipping." 
+    else
+  
+      IFHTTP=`echo $SOURCE | grep "http.\?://" | wc -l`
+      if [ $IFHTTP -ge 1 ] && [ ! -f "$TARGET" ];then
+           URL=$SOURCE;
+           RESPONSE=`curl -s -o /dev/null \
+                     -IL -w "%{http_code}" $URL`
+           if [ $RESPONSE == '200' ]; then
+                wget --no-check-certificate     \
+                     -O $TARGET $URL >> $WGETLOG \
+                     2>&1 # > /dev/null 2>&1
+                SUCCESS="YES"
+           else
+                echo "$URL does not exist! Skipping."
+                SUCCESS="NO"
+           fi
+      else
+           if [ ! -f "$TARGET" ]; then
+             # WORKAROUND FOR RELATIVE PATHS
+             # => CHECK IN TWO LOCATIONS
+                if [ `ls $SOURCE 2>/dev/null | #
+                      wc -l` -le 0 ];then
+                 if [ `ls $MAINPATH/$SOURCE 2>/dev/null | #
+                       wc -l` -le 0 ];then
+                       echo "No valid input provided!"
+                       SUCCESS="NO"
+                 else
+                       SUCCESS="YES"
+                       cp $MAINPATH/$SOURCE $TARGET
+                       INPUT=$MAINPATH/$SOURCE
+                 fi
+                else
+                     SUCCESS="YES"
+                     cp $SOURCE $TARGET
+                     INPUT=$SOURCE
+                fi
+           else
+                SUCCESS="YES"
+                echo "\$TARGET EXISTS ($TARGET)" 
+           fi
+      fi
+    fi
+
+  }
+
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+# =========================================================================== #
+# MAIN MDSH CONVERT FUNCTION
+# =========================================================================== #
+
+
+  function mdsh2src() {
+
+# DEFINE FUNCTION SPECIFIC PLACEHOLDERS
+# --------------------------------------------------------------------------- #
+  TMPBREAK="NX${RANDOM}XL";TMPIDX=`echo $* | md5sum | cut -c 1-8`
+
+# INCLUDE FUNCTIONS
+# --------------------------------------------------------------------------- #
+  source $FUNCTIONS
+
+# =========================================================================== #
+# AND ACTION PLEASE! 
+# =========================================================================== #
+
+# PREPARE INPUT PARAMETERS 
+# --------------------------------------------------------------------------- #
+  INPUT=`echo $* | cut -d " " -f 1`; echo "input is: "$INPUT
+  LINES=`echo $* | sed "s/ /\n/g"    | # SPACES TO NEWLINES
+         sed "/[^0-9\\-]/d"          | # NO LINES WITH MORE THAN NUMS AND -
+         egrep -v "^-|-$"            | # IGNORE ISOLATED -
+         grep -v "^[ ]*$" | tail -n 1` # NO EMPTY / LAST LINE ONLY
+  if [ `echo $LINES | wc -c` -gt 1 ]; then      # IF LINE OPTION IS SET
+        echo "lines: $LINES"
+        LINES=`echo $LINES | sed 's/-/,/'`
+        SELECTLINES="sed -n \"${LINES}p\" "
+    else
+        SELECTLINES="tee" 
+  fi
+
+# MAKE LOCAL IF NECESSARY
+# --------------------------------------------------------------------------- #
+  MDSH=${TMPID}.${TMPIDX}.mdsh
+  getFile $INPUT $MDSH
+  if [ X$SUCCESS == XYES ];then
+       RUN="YES"
+  else
+       RUN="NO"    
+  fi
+
+# =========================================================================== #
+# TRANSFORM (IF POSSIBLE/NECESSARY)
+# --------------------------------------------------------------------------- #
+  if [ "$RUN" == "YES" ] && 
+     [ -f "$MDSH" ] &&
+     [ `wc -l "$MDSH" | cut -d " " -f 1` -gt 0 ]; then
+
+# REMEMBER LOCATION IF LOCAL (NOT WORKING FOR NESTING AT THE MOMENT???)
+# --------------------------------------------------------------------------- #
+  if [ `echo $INCLUDEPATH | wc -c` -gt 1 ]; then
+        LASTINCLUDEPATH="$INCLUDEPATH";fi
+  if [ $IFHTTP -ge 1 ]; then
+       INCLUDEPATH=""
+  else INCLUDEPATH=`cd "$( dirname "${INPUT}" )" && pwd`; fi
+
+# GET LINERANGE
+# --------------------------------------------------------------------------- #
+  cat $MDSH | eval "$SELECTLINES" > tmp.tmp ; mv tmp.tmp $MDSH
+
+# WRITE FID TO MDSH
+# --------------------------------------------------------------------------- #
+  echo -e "\n% $FID\n" >> $MDSH
+
+# PRE-PROCESSING
+# --------------------------------------------------------------------------- #
+  APNDCMD="APND${RANDOM}CMD"
+
+  # MOVE (% TO NEW LINE = ALLOW INLINE COMMANDS
+    sed -i '/^%/!s/(% /\n:C:M:D% /g' $MDSH
+    sed -i "/^:C:M:D%/s/)/\n$APND/"  $MDSH
+    sed -i "s/^:C:M:D%/$APNDCMD%/"   $MDSH
+  
+  # SAVE MDSH LINES TO PROTECT FROM PANDOC
+  # ----------------------------------------------------------------------- #
+  
+    SAVECMDS=${TMPID}.${TMPIDX}.commented 
+    if [ -f $SAVECMDS ]; then rm $SAVECMDS ; fi
+    PROTECTED=${TMPID}.${TMPIDX}.mdshprotected
+    cp $MDSH $PROTECTED
+
+    if [ `grep "^%" $PROTECTED | wc -l` -gt 0 ]; then
+   
+   # TEMPORARILY REMOVE COMMAND LINES
+   # --------------------------------  
+     for CMDLINE in `grep -n "^%" $PROTECTED | #
+                     cut -d ":" -f 1`
+      do  LNCMD=$CMDLINE
+            CMD=`sed "${LNCMD}q;d" $MDSH`
+          CMDID=`echo $CMD | md5sum | cut -d " " -f 1`$MKLONG
+          sed -i "${LNCMD}s/^.*$/$CMDID/g" $PROTECTED
+          echo "${CMDID}:${CMD}" >> $SAVECMDS
+     done
+  
+   # TEMPORARILY REMOVE INLINE COMMANDS (AND MARK FOR APPENDING)
+   # -----------------------------------------------------------
+     for CMDLINE in `grep -n "^$APNDCMD%" $PROTECTED | #
+                     cut -d ":" -f 1`
+      do  LNCMD=$CMDLINE
+            CMD=`sed "${LNCMD}q;d" $MDSH | sed "s/^$APNDCMD//"`
+          CMDID=`echo $CMD | md5sum | cut -d " " -f 1`$MKLONG
+          sed -i "${LNCMD}s/^.*$/$APNDCMD$CMDID/g" $PROTECTED
+          echo "${CMDID}:${CMD}" >> $SAVECMDS
+     done
+
+    fi
+
+  sed -i -e :a -i -e "\$!N;s/\n$APNDCMD/$APNDCMD/;ta" -i -e 'P;D' $PROTECTED
+
+# CONVERT MARKDOWN WITH PANDOC (CUSTOM FOOTNOTES/BIBREFS)
+# --------------------------------------------------------------------------- #
+  MDSHMOD=${TMPID}.${TMPIDX}.mdshmod
+  if [ -f $MDSHMOD ]; then rm $MDSHMOD ; fi
+
+  # TEMPORARY PROTECTORS (FOO)
+  # ---------------------------------
+    BREAKFOO=BR${RANDOM}EAK
+      FN1FOO=FN${RANDOM}1 ; FN2FOO=FN${RANDOM}2
+    CICOMMON=CM$RANDOM
+      CI1FOO=${CICOMMON}CI${RANDOM}1 ; CI2FOO=CI${RANDOM}2
+      CP1FOO=${CICOMMON}CP${RANDOM}1 ; CP2FOO=CP${RANDOM}2
+     CODEFOO=CO${RANDOM}DE
+
+  # ------------------------------------ #
+  # THE GREAT ESCAPE                     #
+  # ------------------------------------ #
+    FNOESC=$ESC`echo $FOOTNOTEOPEN     | #
+                sed 's/\\\/\\\\\\\/g'  | #
+                sed 's/\//\\\\\//g'`     #
+    CTOESC=$ESC`echo $CITEOPEN         | #
+                sed 's/\\\/\\\\\\\/g'  | #
+                sed 's/\//\\\\\//g'`     #
+    CPOESC=$ESC`echo $CITEPOPEN        | #
+                sed 's/\\\/\\\\\\\/g'  | #
+                sed 's/\//\\\\\//g'`     #
+  # ------------------------------------ #
+
+  cat $PROTECTED                          | # USELESS USE OF CAT
+  sed '/^\t*\*/s/\t\*/*/'                 | # CONFORM (?) LISTS PRODUCED BY ETHERPAD (1)
+  sed '/^\t*\*/s/\t/    /'                | # CONFORM (?) LISTS PRODUCED BY ETHERPAD (2)
+  sed "s/^ *$/$EMPTYLINE/g" | # PROTECT EMPTY LINES (BREAK FOR HEADINGS)
+  sed "s/^[ ]\{4\}/$CODEFOO/"             | # PROTECT CODEBLOCKS
+  sed ":a;N;\$!ba;s/\n/$BREAKFOO/g"       | # REMOVE LINEBREAKS (TEMPORARY)
+  sed "s/\[\^\]{/\n$FN1FOO/g"             | # PROTECT (FOONOTE OPEN)
+  sed "/^$FN1FOO/s/}/\n$FN2FOO/"          | # PROTECT (FOOTNOTE CLOSE)
+  sed "s/\($BREAKFOO\)*[ ]*\[@\[/\n$CP1FOO/g" | # ++ PROTECT (CITEP OPEN)
+  sed "s/\($BREAKFOO\)*[ ]*\[@/\n$CI1FOO/g"   | # ++ PROTECT (CITE OPEN)
+  sed "/^$CP1FOO/s/\]/$CP2FOO/"           | # PROTECT (CITEP OPTION OPEN)
+  sed "/^$CICOMMON/s/\]/$CI2FOO/"         | # PROTECT (CITE CLOSE)
+  sed "s/$BREAKFOO/\n/g"                  | # RESTORE LINEBREAKS
+  sed "s/$CODEFOO/    /"                  | # RESTORE CODEFOO
+  sed "s/$EMPTYLINE/\n&\n/"               | # RESTORE EMPTYLINES
+  sed 's/</\&lt;/g'                       | # ALLOW INLINE <tag>
+  eval "$PANDOCACTION"                    | # MD TO TARGET MARKUP
+  sed "s/[a-f0-9]\{32\}${MKLONG} /&\n/g"  | # PUT CMD LINES ON SEPARATE LINES
+  sed "/^.\{135,\}/s/[a-f0-9]\{32\}${MKLONG}/\n&/g" | # ENSURE SEPARATE 'MDSH LINE'
+  sed "s/$APNDCMD/\n/g"                   | # PUT CMD LINES ON SEPARATE LINE
+  sed "/^<[^>]*>\([a-f0-9]\{32\}${MKLONG}\)<[^>]*>$/s/<[^>]*>//g" | # REMOVE TAGS IF IS 'FUNCTIONS ONLY'
+  sed "s/[ \t]*$FN1FOO/$APND$FNOESC/g"    | # SUBSTITUTE WITH TARGET MARKUP 
+  sed "s/[ \t]*$FN2FOO/$FOOTNOTECLOSE/g"  | # SUBSTITUTE WITH TARGET MARKUP 
+  sed "s/[ \t]*$CI1FOO/$APND$CTOESC/g"    | # SUBSTITUTE WITH TARGET MARKUP 
+  sed "s/[ \t]*$CI2FOO/$CITECLOSE/g"      | # SUBSTITUTE WITH TARGET MARKUP 
+  sed "s/[ \t]*$CP1FOO/$APND$CPOESC/g"    | # SUBSTITUTE WITH TARGET MARKUP 
+  sed "s/[ \t]*$CP2FOO/$CITEPCLOSE/g"     | # SUBSTITUTE WITH TARGET MARKUP 
+  tee > $MDSHMOD                            # WRITE TO FILE
+
+# MAKE MD5 HASH TO PREVENT (REPETITION)/RECURSION -> SKIP IF NECESSARY
+# --------------------------------------------------------------------------- #
+  MD5THIS=`md5sum $MDSHMOD | cut -d " " -f 1`
+  touch ${TMPID}.included
+  TIMESINCLUDED=`grep $MD5THIS ${TMPID}.included | wc -l`
+  echo $MD5THIS >> ${TMPID}.included
+
+  if [ $TIMESINCLUDED -ge 5 ]; then
+       echo "Skipping! (caught in a loop)"
+       SKIP="YES"
+  else
+       SKIP="NO"
+  fi
+
+  if [ X"$SKIP" != XYES ]; then
+
+# RESTORE MDSH LINES
+# --------------------------------------------------------------------------- #
+  if [ -f $SAVECMDS ]; then
+  sed -i 's/\\/\\\\/g' $SAVECMDS # PROTECT ESCAPES (aka. \v PROBLEM)
+
+  for CMDID in `cat $SAVECMDS | cut -d ":" -f 1 | sort -u`
+   do
+      CMD=`grep $CMDID $SAVECMDS        | # FIND COMMAND
+           head -n 1 | cut -d ":" -f 2- | # SELECT AND RM ID
+           sed 's/\//\\\\\//g'          | # ESCAPE CONTROL CHARACTER
+           sed 's/&/\\\\\&/g'`            # ESCAPE CONTROL CHARACTER
+      sed -i "s/$CMDID/$CMD/g" $MDSHMOD
+   done
+  fi
+
+# PARSE COMMANDS 
+# --------------------------------------------------------------------------- #
+
+  for LINE in `cat "$MDSHMOD" | sed 's, ,DieW73NaS03J,g'`
+   do 
+       # --------------------------------------------------- # 
+       # RESTORE SPACES
+         LINE=`echo "$LINE" | sed 's,DieW73NaS03J, ,g'`
+       # --------------------------------------------------- #  
+ 
+       # CHECK IF LINE STARTS WITH %
+         ISCOMMENT=`echo $LINE | grep "^%" | wc -l` 
+       # --------------------------------------------------- # 
+       # IF LINE STARTS WITH %
+         if [ $ISCOMMENT -ge 1 ]; then
+ 
+            CMD=`echo "$LINE"             | #
+                 grep "^%[ ]*[A-Z0-9]\+:" | # BE PICKY
+                 cut -d "%" -f 2          | #
+                 cut -d ":" -f 1          | #
+                 sed 's/\[/ /g'           | #
+                 sed 's/\]/ /g'           | #
+                 sed 's/\\\[ ]*$//'       | # RM TRAILING SLASH
+                 sed 's, ,,g'`
+            ARG=`echo "$LINE" | cut -d ":" -f 2-`
+       # --------------------------------------------------- # 
+       # LOOK FOR MATCHING COMMAND
+
+         CMDMATCH=`grep "^function ${CMD}()" $FUNCTIONS | \
+                   wc -l`
+
+       # --------------------------------------------------- # 
+       # IF COMMAND EXISTS 
+         if [ $CMDMATCH -ge 1 ]; then
+            # EXECUTE COMMAND
+              $CMD "$ARG"
+         else
+            # KEEP COMMENT (U.A. NEEDED FOR LIST INJECTS)
+              echo "${COMSTART}${LINE}${COMCLOSE}" >> $SRCDUMP
+         fi
+       # --------------------------------------------------- # 
+       # IF LINE DOES NOT START WITH %
+         else
+       # --------------------------------------------------- # 
+       # APPEND TO SOURCE
+         echo "$LINE"  >> $SRCDUMP
+         fi
+       # --------------------------------------------------- # 
+  done 
+
+# POST-PROCESSING
+# --------------------------------------------------------------------------- #
+
+  sed -i "s/$EMPTYLINE//g"     $SRCDUMP  # RESTORE EMPTY LINES
+  sed -i '/./,/^$/!d'          $SRCDUMP  # REMOVE CONSECUTIVE BLANK LINES
+  sed -i -e :a  \
+      -i -e "\$!N;s/\(<[/]*.\{1,10\}>\)*\n\(<[/]*.\{1,10\}>\)*[ \t]*$APND//;ta" \
+      -i -e 'P;D'              $SRCDUMP  # APPEND & RM APPEND IDS
+  sed -i -e :a \
+      -i -e "\$!N;s/[ \t]*$APND\n//;ta" \
+      -i -e 'P;D'              $SRCDUMP  # APPEND THE $APND
+  sed -i "s/[ \t]*$APND//g"    $SRCDUMP  # RM REMAINING APPEND IDS +SPACE
+  sed -i "s/[ \t]*$ESC//g"     $SRCDUMP  # RM ESC IDS +SPACE 
+
+# RESTORE INCLUDEPATH
+# --------------------------------------------------------------------------- #
+  if [ `echo $LASTINCLUDEPATH | wc -c` -gt 1 ]; then
+        INCLUDEPATH="$LASTINCLUDEPATH"
+  fi
+
+# CLEANUP (FILES)
+# --------------------------------------------------------------------------- #
+  if [ -f $SAVECMDS ]; then rm $SAVECMDS ;fi
+  if [ -f $PROTECTED ]; then rm $PROTECTED ;fi
+
+    # REMOVE ID AGAIN (REMBERED TO PREVENT RECURSION)
+      sed -i "/$MD5THIS/d" ${TMPID}.included
+  fi
+  fi
+
+ }
+
+
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+# --------------------------------------------------------------------------- #
+
+function INCLUDE() {
+
+  # SAVE FUNCTION ID (NOT AS VARIABLE, MAY BE OVERWRITTEN)
+  # -------------------------------------------------------------- #
+    FID=`date +%s%N`; echo $FID >> ${TMPID}.fid
+
+  # ADD MARK TO $SRCDUMP
+  # -------------------------------------------------------------- #
+    echo -e "\n% $FID\n" >> $SRCDUMP
+
+  # PROCESS INPUT !!!!!
+  # -------------------------------------------------------------- #
+    mdsh2src $*
+
+  # REMOVE ADDED FUNCTIONS
+  # -------------------------------------------------------------- #
+    if [ -f ${TMPID}.fid ]; then
+
+    # LOAD LATEST FUNCTION ID
+      FID=`tail -n 1 ${TMPID}.fid`
+    # REMOVE FROM FUNCTIONS
+      sed -i "/${FID} -- START$/,/${FID} -- END$/d" ${FUNCTIONS}
+    # REMOVE FROM SAVED IDS
+      sed -i "/$FID/d" ${TMPID}.fid
+    # RELOAD FUNCTIONS
+      source $FUNCTIONS
+
+    # RESET FID
+      FID=`tail -n 1 ${TMPID}.fid`
+      MDSH=`grep -l $FID ${TMPID}.*.mdsh`
+
+    fi
+
+}
+
+# --------------------------------------------------------------------------- #
+
+function EXTENDFUNCTIONS() {
+
+  if [ -f ${TMPID}.fid ]
+  then FID=`tail -n 1 ${TMPID}.fid`
+  else FID=`date +%s%N`
+     # ------------------------------------------------------ #
+     # SAVE FUNCTION ID (NOT AS VARIABLE, MAY BE OVERWRITTEN)
+     # ------------------------------------------------------ #
+       echo $FID >> ${TMPID}.fid
+  fi
+
+  FUNCTIONSHERE=`echo $* | sed 's/ /\n/g' | #
+                 grep "\.functions$" | tail -n 1`
+  FUNCTIONSHERE=$INCLUDEPATH/$FUNCTIONSHERE
+
+  if [ `echo $FUNCTIONSHERE | wc -c` -gt 1 ];then
+  PARAMETERSWITHOUTFUNCTIONS=`echo $*        | #
+                              sed 's/ /\n/g' | #
+                              grep -v "\.functions$"`
+  
+ # ATTACH FUNCTIONS TO MAIN FUNCTIONS
+ # ---------------------------------------------------------
+   if [ `ls $FUNCTIONSHERE 2>/dev/null | wc -l` -gt 0 ];then
+
+ # FID=`date +%s%N` # DO NOT SET => WILL BE REMOVED BY % INCLUDE (+ ADJUST %INCLUDE)
+ # ATTACH AND MARK FUNCTIONS
+   echo "#  -- ${FID} -- START" >> $FUNCTIONS
+   cat  $FUNCTIONSHERE          >> $FUNCTIONS
+   echo "#  -- ${FID} -- END"   >> $FUNCTIONS
+
+   source $FUNCTIONS
+
+   FUNCTIONSADDED="YES"
+ # SAVE FUNCTION ID (NOT AS VARIABLE, MAY BE OVERWRITTEN)
+ # echo $FID >> ${TMPID}.fid
+   fi
+   else
+   FUNCTIONSADDED="NO"
+  fi
+
+}
+
+# --------------------------------------------------------------------------- #
+

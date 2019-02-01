@@ -1,0 +1,198 @@
+# .-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- #
+
+ function mkPdf() {
+
+  TMPTEX=${TMPID}.tex
+# --------------------------------------------------------------------------- #
+# WRITE TEX SOURCE
+# --------------------------------------------------------------------------- #
+  echo "\documentclass[fontsize=8pt,cleardoublepage=empty]{scrbook}" > $TMPTEX
+  if [ -f ${TMPID}.preamble ];then cat ${TMPID}.preamble        >> $TMPTEX ;fi
+  echo "\bibliography{${TMPID}.bib}"                                >> $TMPTEX
+  echo "\begin{document}"                                           >> $TMPTEX
+  cat   $SRCDUMP                                                    >> $TMPTEX
+  echo "\end{document}"                                             >> $TMPTEX
+
+  if [ `echo $THISDOCUMENTCLASS | wc -c` -gt 2 ]; then
+  sed -i "s/^\\\documentclass.*}$/\\\documentclass$THISDOCUMENTCLASS/" $TMPTEX
+  fi
+# --------------------------------------------------------------------------- #
+# MAKE PDF
+# --------------------------------------------------------------------------- #
+  pdflatex -interaction=nonstopmode  \
+           -output-directory $TMPDIR $TMPTEX    # > /dev/null
+  biber --nodieonerror `echo ${TMPTEX} | rev  | #
+                        cut -d "." -f 2- | rev` #
+  TMPIDBASE=`basename $TMPID`
+  cd $TMPDIR
+  makeindex -s ${TMPIDBASE}.ist ${TMPIDBASE}.idx
+  cd - > /dev/null 2>&1
+  if [ -f ${TMPID}.pdf ];then
+         ROUND=0;while [ "$ROUND" -lt 10 ];do
+         for D in $midOutput; do $D ;done
+         pdflatex -interaction=nonstopmode  \
+                  -output-directory $TMPDIR $TMPTEX > /dev/null
+         ROUND=`expr $ROUND + 1`; # echo $ROUND
+         done
+         mv ${TMPID}.pdf $OUTPUT
+  else
+         echo "SOMETHING WENT WRONG."
+  fi
+
+ }
+
+# .-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-. #
+
+ function mkHtml() {
+
+# --------------------------------------------------------------------------- #
+# MAKE FOOTNOTES
+# --------------------------------------------------------------------------- #
+  ( IFS=$'\n' ; COUNT=1
+    for FOOTNOTE in `sed "s/$FOOTNOTEOPEN/\n&/g" $SRCDUMP | #
+                     sed "s/$FOOTNOTECLOSE/&\n/"         | #
+                     grep "^$FOOTNOTEOPEN"`                #
+     do
+        if [ $COUNT -eq 1 ]; then
+             echo "<div class=\"footnotes\">"  >> $SRCDUMP
+             echo "<ol>"                       >> $SRCDUMP
+             FOOTNOTEBLOCKSTARTED="YES"
+        fi
+        LNUM=`grep -n $FOOTNOTE $SRCDUMP | head -n 1 | cut -d ":" -f 1`
+  
+        FOOTNOTETXT=`echo $FOOTNOTE    | #
+                     cut -d "{" -f 2   | #
+                     cut -d "}" -f 1`    #
+        ID=`echo $FOOTNOTETXT$COUNT    | #
+            md5sum | sed 's/[^a-z]//g' | # HASH WITHOUT NUMBERS
+            cut -c 1-8`                  # ONLY 8    
+        DI=`echo $ID | rev`              # ID BACKWARDS (DO NOT DOUBLE)
+        FOOTNOTE=`echo $FOOTNOTE       | #
+                  sed 's/\[/\\\[/g'    | #
+                  sed 's/|/\\|/g'`
+        OLDFOOTNOTE=$FOOTNOTE
+        FC="class=\"f\""
+        NEWFOOTNOTE="<sup id=\"$DI\" $FC><a href=\"#$ID\">$COUNT</a><\/sup>"
+        sed -i "$((LNUM))s|$OLDFOOTNOTE|$NEWFOOTNOTE|" $SRCDUMP
+        echo "<li id=\"$ID\">
+               $FOOTNOTETXT
+              <a href=\"#$DI\">-&gt;</a>
+              </li>" | #
+        sed ':a;N;$!ba;s/\n//g' | tr -s ' ' >> $SRCDUMP
+        COUNT=`expr $COUNT + 1`
+    done
+  
+    if [ "X${FOOTNOTEBLOCKSTARTED}" == "XYES" ]; then
+          echo "</ol>"              >> $SRCDUMP
+          echo "</div>"             >> $SRCDUMP
+          sed -i "s|$FOOTNOTECLOSE||g" $SRCDUMP # WORKAROUND (BUG!!)
+    fi
+  )
+
+# --------------------------------------------------------------------------- #
+# WRITE OUTPUT
+# --------------------------------------------------------------------------- #
+
+# GET STATIC ABOVE
+# ----
+  tac $OUTPUT | #
+  sed -n "/<!--.*${HEADMARK}.*-->$/,\$p" | #
+  tac      >   ${TMPID}.htmltmp
+# ----
+  echo ""  >>  ${TMPID}.htmltmp
+
+# TIDY CONFIG
+# http://tidy.sourceforge.net/docs/quickref.html
+  echo "show-body-only: y"     >  ${TMPID}.tc
+  echo "wrap-attributes: n"    >> ${TMPID}.tc
+  echo "quiet:y"               >> ${TMPID}.tc
+  echo "vertical-space:y"      >> ${TMPID}.tc
+
+# WRITE/PROCESS MAIN
+  cat $SRCDUMP                | # START WITH PROCESSED DUMP
+  sed '/^%[ 0-9]*$/d'         | # RM STAMP (caused refsrc ??)
+  sed "/^${COMSTART}%.*${COMCLOSE}$/d" | # RM COMMENT LINES
+  tidy -config ${TMPID}.tc    | # OCD CLEAN UP
+  tee >> ${TMPID}.htmltmp       # WRITE TO TMP FILE
+
+# ----
+  echo "" >> ${TMPID}.htmltmp   #
+
+# GET STATIC BENEATH
+# ----
+  sed -n "/<!--.*${FOOTMARK}.*-->$/,\$p" $OUTPUT >> ${TMPID}.htmltmp
+
+# MOVE IN PLACE
+# ----
+  mv ${TMPID}.htmltmp $OUTPUT 
+
+
+ }
+# .-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-. #
+
+
+# =========================================================================== #
+
+  if [ "$OUTPUTFORMAT" == "pdf" ];then
+
+  # ----------------------------------------------------------------------- #
+  # DEFINITIONS SPECIFIC TO OUTPUT
+  # ----------------------------------------------------------------------- #
+    PANDOCACTION="pandoc --ascii --no-wrap --listings -r markdown -w latex"
+  # ----------------------------------------------------------------------- #
+  # FOOTNOTES
+  # \footnote{the end is near, the text is here}
+  # ----------------------------------------------------------------------- #
+    FOOTNOTEOPEN="\footnote{" ; FOOTNOTECLOSE="}"
+  # CITATIONS
+  # \cite{phillips:2004:vectoraesthetic}
+  # ----------------------------------------------------------------------- #
+    CITEOPEN="\cite{"   ; CITECLOSE="}"
+  # ----------------------------------------------------------------------- #
+    CITEPOPEN="\citep[" ; CITEPCLOSE="]{"
+  # ----------------------------------------------------------------------- #
+  # COMMENT
+  # -------
+    COMSTART=''; COMCLOSE=''
+  # ======================================================================= #
+
+    lastAction="mkPdf"
+
+# ........................................................................... #
+
+  elif [ "$OUTPUTFORMAT" == "html" ];then
+
+  # ----------------------------------------------------------------------- #
+    PANDOCACTION="pandoc --ascii -r markdown -w html"
+  # ----------------------------------------------------------------------- #
+  # FOOTNOTES [^]{the end is near, the text is here}
+  # ---------
+    FOOTNOTEOPEN="FOOTNOTEOPEN$RANDOM{";FOOTNOTECLOSE="}FOOTNOTECLOSE$RANDOM"
+  # ----------------------------------------------------------------------- #
+  # CITATIONS [@xx:0000:aa] / [@[p.44]xx:0000:aa]
+  # ---------
+    CITEOPEN="CITEOPEN$RANDOM" ; CITECLOSE="CITECLOSE$RANDOM"
+    CITEPOPEN="$CITEOPEN" ; CITEPCLOSE="CITEPCLOSE$RANDOM"
+  # ----------------------------------------------------------------------- #
+  # COMMENT
+  # -------
+    COMSTART='<!--'; COMCLOSE='-->'
+  # ======================================================================= #
+    HEADMARK="= FROM MDSH START ="
+    FOOTMARK="= FROM MDSH END ="
+
+
+    lastAction="mkHtml"
+
+# ........................................................................... #
+
+  else
+    echo "NO (SUITABLE) OUTPUT FORMAT DEFINED"
+    exit 0;
+  fi
+
+# =========================================================================== #
+
+
+
+

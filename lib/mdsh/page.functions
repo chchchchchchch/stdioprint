@@ -1,0 +1,208 @@
+# --------------------------------------------------------------------------- #
+  function svglayers2pdfpages() {
+
+     CROP=10.63 # 3mm in px
+     SVGLAYER="$1" ; PDFPAGES="$2"
+     SUPERTMP=${TMPID}.`echo $SVGL | md5sum | cut -c 1-4`.tmp
+     CANVASWIDTH=`sed ':a;N;$!ba;s/\n//g' $SVGLAYER | # SVG WITHOUT LINEBREAKS
+                  sed 's/width=/\n&/g'              | # EXTRACT WIDTH
+                  grep "^width="                    | # EXTRACT WIDTH
+                  cut -d "\"" -f 2                  | # EXTRACT WIDTH VALUE
+                  head -n 1`                          # FIRST WIDTH ONLY
+      LAYERNAMES=`sed ':a;N;$!ba;s/\n//g' $SVGLAYER | # SVG WITHOUT LINEBREAKS
+                  sed 's/>/&\n/g'                   | # ALL '>' ON NEWLINE
+                  sed '/<g/s/scape:label/\nlabel/'  | # PUT NAME LABEL ON NL
+                  grep -n ^label                    | # SELECT LABELS
+                  cut -d "\"" -f 1,2                | # EXTRACT LABELS
+                  sort -t= -k 2 -u | sort -n        | # SORT/UNIQ + SORT NUM
+                  grep -v "=\"XX_"                  | # IGNORE XX LAYERS
+                  cut -d '"' -f 2`                    # EXTRACT NAMES
+
+      BFOO=NL`echo ${RANDOM} | cut -c 1`F00
+      SFOO=SP`echo ${RANDOM} | cut -c 1`F0O
+     LOPEN=LA`echo ${RANDOM} | cut -c 2`F0P
+   # ----------------------------------------------------------------------- #
+   # MOVE LAYERS ON SEPARATE LINES (TEMPORARILY; EASIFY PARSING LATER ON)
+   # ----------------------------------------------------------------------- #
+     sed ":a;N;\$!ba;s/\n/$BFOO/g" $SVGLAYER | # RM ALL LINEBREAKS (BUT SAVE)
+     sed "s/ /$SFOO/g"                       | # RM ALL SPACE (BUT SAVE)
+     sed 's/<g/\n<g/g'                       | # REDO GROUP OPEN + NEWLINE
+     sed "/mode=\"layer\"/s/<g/$LOPEN/g"     | # PLACEHOLDER FOR LAYERGROUP OPEN
+     sed ':a;N;$!ba;s/\n//g'                 | # RM ALL LINEBREAKS (AGAIN)
+     sed "s/$LOPEN/\n<g/g"                   | # REDO LAYERGROUP OPEN + NEWLINE
+     sed '/^[ ]*$/d'                         | # RM EMPTY LINES
+     sed 's/<\/svg>/\n&/g'                   | # PUT SVG CLOSE ON NEW LINE
+     sed 's/display:none/display:inline/g'   | # MAKE VISIBLE EVEN WHEN HIDDEN
+     sed 's/opacity:[0-9\.]*/1/g'            | # RM TRANSPARENCY (PDFX PROBLEM)
+     tee > ${SUPERTMP}                         # WRITE TO TEMPORARY FILE 
+
+   # ----------------------------------------------------------------------- #
+   # WRITE LAYERS TO SEPARATE FILES AND TRANSFORM TO PDF 
+   # ----------------------------------------------------------------------- #
+     COUNT=1 
+     for LAYERNAME in $LAYERNAMES
+      do for PAGE in 1 2
+         do  if [ $PAGE -eq 1 ]; then
+                  XSHIFT=-$CROP
+             else XSHIFT=-`python -c "print $CANVASWIDTH - $CROP"`
+             fi
+             TRANSFORM="transform=\"translate($XSHIFT,0)\""
+             NUM=`echo 0000$COUNT | rev | cut -c 1-4 | rev`
+             LNAME=`echo $LAYERNAME | md5sum | cut -c 1-6`
+                head -n 1 ${SUPERTMP}  | # THE HEADER
+                sed "s/$BFOO/\n/g"     | # RESTORE ORIGINAL LINEBREAKS
+                sed "s/$SFOO/ /g"      | # RESTORE ORIGINAL SPACES
+                tee                    >   ${TMPID}_${NUM}_${LNAME}.svg
+                echo "<g $TRANSFORM>"  >>  ${TMPID}_${NUM}_${LNAME}.svg
+                grep "inkscape:label=\"$LAYERNAME\"" ${SUPERTMP} | #
+                sed "s/$BFOO/\n/g"     | # RESTORE ORIGINAL LINEBREAKS
+                sed "s/$SFOO/ /g"      | # RESTORE ORIGINAL SPACES
+                tee                    >>  ${TMPID}_${NUM}_${LNAME}.svg
+                echo "</g>"            >>  ${TMPID}_${NUM}_${LNAME}.svg
+                echo "</svg>"          >>  ${TMPID}_${NUM}_${LNAME}.svg 
+                inkscape --export-pdf=${TMPID}_${NUM}_${LNAME}.pdf \
+                         --export-text-to-path ${TMPID}_${NUM}_${LNAME}.svg
+                conformColor ${TMPID}_${NUM}_${LNAME}.pdf
+                rm ${TMPID}_${NUM}_${LNAME}.svg
+             echo $NUM:$LAYERNAME >> `echo $PDFPAGES | #
+                                      sed 's/\.[a-z]*$//'`.pageinfo
+             COUNT=`expr $COUNT + 1`
+         done
+     done
+   # ----------------------------------------------------------------------- #
+   # MAKE MULTIPAGE PDF
+   # ----------------------------------------------------------------------- #
+     pdftk ${TMPID}_*.pdf cat output $PDFPAGES
+   # ----------------------------------------------------------------------- #
+   # CLEAN UP(OBSOLETE?)
+   # ----------------------------------------------------------------------- #
+     rm ${TMPID}_*.pdf $SVGLAYER
+
+  }
+# --------------------------------------------------------------------------- #
+
+ function mkpages() {
+
+   PDFSRC=`echo $* | sed 's/ /\n/g'    | # SPACES TO NEWLINES
+           egrep "\.svg$|\.pdf$"       | # SELECT ENDING WITH .svg/.pdf
+           head -n 1`                    # SELECT FIRST
+      EXT=`echo $PDFSRC | rev | cut -d "." -f 1 | rev`
+
+   KEEPTMP=`echo $* | sed 's,--,\n--,g' | #
+            grep -- "--keeptmp" | wc -l`  #
+
+   if [ "$KEEPTMP" -lt 1 ];then
+        PDFGET=${TMPID}`echo $PDFSRC | md5sum | cut -c 1-6`.pdf
+        SVGTMP=${TMPID}`echo $PDFSRC | md5sum | cut -c 4-9`.svg
+   else TMPKEEP="$TMPDIR/tmpspread"
+        PDFGET=${TMPKEEP}`echo $PDFSRC | md5sum | cut -c 1-6`.pdf
+        SVGTMP=${TMPKEEP}`echo $PDFSRC | md5sum | cut -c 4-9`.svg
+   fi
+
+   if [ -f $PDFGET ]; then
+        echo "$PDFGET exists"
+   else
+        if [ "X$EXT" == "Xsvg" ]; then
+
+              getFile $PDFSRC $SVGTMP
+
+        if [ "X$SUCCESS" == "XYES" ]; then
+              SVGTMP=`realpath $SVGTMP`
+              svglayers2pdfpages $SVGTMP $PDFGET
+        fi
+
+        elif [ "X$EXT" == "Xpdf" ]; then
+
+               getFile $PDFSRC $PDFGET
+               conformColor $PDFGET
+        fi
+   fi
+
+ }
+
+# --------------------------------------------------------------------------- #
+
+ function extractLayers() {
+
+     SVGSRC="$1"; TARGET="$2"; LAYERS="$3"
+     SUPERTMP=${TMPID}.`echo $SVGSRC | md5sum | cut -c 1-4`.tmp
+
+     if [ -f "$SVGSRC" ];then
+
+      BFOO=NL`echo ${RANDOM} | cut -c 1`F00
+      SFOO=SP`echo ${RANDOM} | cut -c 1`F0O
+     LOPEN=LA`echo ${RANDOM} | cut -c 2`F0P
+   # ----------------------------------------------------------------------- #
+   # MOVE LAYERS ON SEPARATE LINES (TEMPORARILY; EASIFY PARSING LATER ON)
+   # ----------------------------------------------------------------------- #
+     sed ":a;N;\$!ba;s/\n/$BFOO/g" $SVGSRC   | # RM ALL LINEBREAKS (BUT SAVE)
+     sed "s/ /$SFOO/g"                       | # RM ALL SPACE (BUT SAVE)
+     sed 's/<g/\n<g/g'                       | # REDO GROUP OPEN + NEWLINE
+     sed "/mode=\"layer\"/s/<g/$LOPEN/g"     | # PLACEHOLDER FOR LAYERGROUP OPEN
+     sed ':a;N;$!ba;s/\n//g'                 | # RM ALL LINEBREAKS (AGAIN)
+     sed "s/$LOPEN/\n<g/g"                   | # REDO LAYERGROUP OPEN + NEWLINE
+     sed '/^[ ]*$/d'                         | # RM EMPTY LINES
+     sed 's/<\/svg>/\n&/g'                   | # PUT SVG CLOSE ON NEW LINE
+     sed 's/display:none/display:inline/g'   | # MAKE VISIBLE EVEN WHEN HIDDEN
+     tee > ${SUPERTMP}                         # WRITE TO TEMPORARY FILE 
+
+     head -n 1 ${SUPERTMP}  | # THE HEADER
+     sed "s/$BFOO/\n/g"     | # RESTORE ORIGINAL LINEBREAKS
+     sed "s/$SFOO/ /g"      | # RESTORE ORIGINAL SPACES
+     tee > ${TARGET}          # WRITE TO FILE
+
+     for LNAME in `echo $LAYERS | sed 's/,/ /g'`
+      do
+         grep "inkscape:label=\"$LNAME\"" ${SUPERTMP} | # GET LAYERS
+         sed "s/$BFOO/\n/g" | sed "s/$SFOO/ /g"       | # RESTORE PLACEHOLDER
+         tee >> ${TARGET}                               # WRITE TO FILE
+     done
+
+     echo "</svg>" >>  ${TARGET}
+
+    fi
+
+ }
+
+# --------------------------------------------------------------------------- #
+
+ function cropArea() {
+
+    SVGSRC="$1";TARGET="$2";CROPAREA="$3"
+
+    if [ "$CROPAREA" !=  "" ];then # echo "CROPAREA IS SET"
+
+    XAREA=`echo $CROPAREA | cut -d ":" -f 1`
+    YAREA=`echo $CROPAREA | cut -d ":" -f 2`
+    WAREA=`echo $CROPAREA | cut -d ":" -f 3`
+    HAREA=`echo $CROPAREA | cut -d ":" -f 4`
+
+    XSHIFT=`python -c "print $XAREA * -1"`
+    YSHIFT=`python -c "print $YAREA * -1"`
+    WSHIFT="width=\"$WAREA\"";HSHIFT="height=\"$HAREA\""
+    TRANSFORM="transform=\"translate(${XSHIFT},${YSHIFT})\""
+
+    BFOO=N`echo ${RANDOM} | cut -c 4`F0;
+  # ----------------------------------------------------------------------- #
+  # MOVE LAYERS ON SEPARATE LINES (TEMPORARILY; EASIFY PARSING LATER ON)
+  # ----------------------------------------------------------------------- #
+    sed ":a;N;\$!ba;s/\n/$BFOO/g" $SVGSRC  | # RM ALL LINEBREAKS (BUT SAVE)
+    sed "s/width=\"[^\"]*\"/$WSHIFT/"      | # REDEFINE (FIRST) WIDTH
+    sed "s/height=\"[^\"]*\"/$HSHIFT/"     | # REDEFINE (FIRST) HEIGHT
+    sed "s/</\n&/g" | sed "s/>/&\n/g"      | # ADD LINEBREAKS TO BRACKETS <>
+    sed "/^<svg/s/>/&<g $TRANSFORM>/"      | # START OUTER GROUP
+    sed ":a;N;\$!ba;s/\n//g"               | # RM ALL LINEBREAKS
+    sed "s/$BFOO/\n/g"                     | # RESTORE LINEBREAKS
+    sed "s/<\/svg/<\/g>&/"                 | # CLOSE OUTER GROUP
+    sed 's/display:none/display:inline/g'  | # DISPLAY ALL
+    tee > ${TARGET}                          # WRITE TO FILE
+
+    else
+        # echo "CROPAREA NOT SET"
+          cp $SVGSRC $TARGET
+    fi
+
+ }
+
+# --------------------------------------------------------------------------- #
+

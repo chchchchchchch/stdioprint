@@ -1,0 +1,79 @@
+# =========================================================================== #
+
+  function getVerbatim() {
+
+    THISCMD="$1"
+     TARGET="$2"; if [ "$2" == "" ];then TARGET="${TMPID}.xtract"; fi
+
+    SEPARATOR="^${COMSTART}% [-]{4,} *${COMCLOSE}$"
+
+   # GET LINENUMBER FOR SEPARATOR IN (PROCESSED) $SRCDUMP
+   # ----
+     LNSTART=`grep -nE "$SEPARATOR" $SRCDUMP | # FIND SEPARATOR LINE
+              tail -n 1 | cut -d ":" -f 1`     # SELECT LAST MATCH
+
+   # EXTRACT TEXT PARTS PROCESSED BEFORE SEPARATOR
+   # ----
+     head -n $LNSTART $SRCDUMP  | # DISPLAY UNTIL SEPARATOR LINE
+     sed '$d' > ${TMPID}.before    # REMOVE LAST LINE (= SEPARATOR)
+     cat ${TMPID}.before > $SRCDUMP # REWRITE $SRCDUMP
+
+   # GET NUMBER FOR CMD LINE IN (UNPROCESSED) MDSH SRC
+   # ----
+     LNCMD=`grep -n "^% $THISCMD:" $MDSH | # FIND CMD LINE
+            head -n 1 | cut -d ":" -f 1`   # SELECT LAST MATCH
+
+   # DISABLE CMD LINE IN MDSH SRC (PREVENT DOUBLE MATCH)
+   # ----
+     sed -i "${LNCMD}s/^% $THISCMD:/%X${THISCMD}:/" $MDSH
+
+   # EXTRACT PART UNTIL CMD LINE
+   # ----
+     head -n $LNCMD $MDSH > ${TMPID}.part
+
+   # GREP SEPARATOR/MARKER IN TMP PART
+   # ----
+     LNPART=`tac ${TMPID}.part          | # START FROM END
+             grep -nE "^% [-]{4,} *$"   | # FIND SEPARATOR
+             head -n 1 | cut -d ":" -f 1` # NUM FOR FIRST(=LAST) MATCH
+
+   # EXTRACT UNPROCESSED SECTION
+   # ----
+     tac ${TMPID}.part           | # SHOW REVERT
+     head -n $LNPART             | # UNTIL LINE NUMBER
+     tac                         | # RE-REVERT 
+     sed '$d' | sed '1d'         | # RM FIRST/LAST (= SEPARATOR/CMD)
+     sed -n '/^.\{1\}/,$p' | tac | # FROM FIRST NON-EMPTY LINE TO END/REVERT
+     sed -n '/^.\{1\}/,$p' | tac | # FROM FIRST NON-EMPTY LINE TO END/REVERT
+     tee > ${TARGET}               # WRITE TO TARGET FILE
+
+     rm ${TMPID}.part # CLEAN UP
+
+  }
+
+# =========================================================================== #
+
+  function unIndent() {
+
+   INDENTTHIS="$1"
+
+   if [ -f "$INDENTTHIS" ]; then
+   INDENT=`cat $INDENTTHIS       | # START PIPE WITH COLLECTION
+           sed '/^[ \t]*$/d'     | # IGNORE/DELETE EMPTY LINES
+           sed -E 's/([^ ]).*//' | # KEEP ONLY LEADING BLANK
+           sort -r               | # REVERSE SORT
+           tail -n 1             | # SELECT LAST (=SHORTEST)
+           wc -c`                  # COUNT  
+   if [ $INDENT -eq 0 ]; then INDENT=1 ; fi
+
+     cat $INDENTTHIS     | # START ...
+     cut -c ${INDENT}-  | # REMOVE INDENT
+     tee > tmp.tmp        # WRITE TO FILE 
+     mv tmp.tmp $INDENTTHIS
+
+   fi
+
+  }
+
+# =========================================================================== #
+

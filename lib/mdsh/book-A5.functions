@@ -1,0 +1,122 @@
+# --------------------------------------------------------------------------- %
+#  ADD FORMAT FOR TEX
+# --------------------------------------------------------------------------- %
+# A6 + CROP (online-druck.biz)
+  if [ `grep -s "% SIZE IS SET" ${TMPID}.preamble | wc -l` -lt 1 ]
+  then
+  echo "% SIZE IS SET"                                 >> ${TMPID}.preamble
+  echo "\usepackage{geometry}"                         >> ${TMPID}.preamble
+  echo "\geometry{paperwidth=154mm,paperheight=216mm}" >> ${TMPID}.preamble
+  fi
+# --------------------------------------------------------------------------- %
+
+# --------------------------------------------------------------------------- #
+
+function PDFXTITLE()  { THISPDFXTITLE="$*";  }
+function PDFXAUTHOR() { THISPDFXAUTHOR="$*"; }
+function PDFXORG()    { THISPDFXORG="$*";    }
+function MKPDFXCOMPLIANT() {
+
+  ICC="$INCLUDEPATH/../lib/icc/FOGRA39L.icc"
+
+  pdfxrequired() {
+
+   # PDF/X COMPLIANCY
+   # ---------------- #
+     echo "\usepackage[x-1a]{pdfx}"                     >> ${TMPID}.preamble
+     echo "<?xpacket begin=''
+            id='W5M0MpCehiHzreSzNTczkc9d'?>"            > $TMPDIR/pdfx-1a.xmp
+     cp "$ICC" $TMPDIR/FOGRA39L.icc
+     echo "\Keywords{pdfTeX\sep PDF/X-1a\sep PDF/A-b}
+     \Title{${THISPDFXTITLE}}
+     \Author{${THISPDFXAUTHOR}}
+     \Org{${THISPDFXORG}}
+     \Doi{123456789}" > ${TMPID}.xmpdata
+     echo '\pdfpageattr{/MediaBox [0 0 436 612]
+                  /TrimBox [8 8 428 604]}
+           \pdfcatalog{
+           /OutputIntents [ <<
+          /Info (none)
+         /Type /OutputIntent
+        /S /GTS_PDFX
+       /OutputConditionIdentifier (OFCOM_PO_P1_F60_95)
+      /RegistryName (http://www.color.org/)
+      >> ]
+          }'                                            >> ${TMPID}.preamble
+   }
+
+ # ------------------------------------------------------------------------- # 
+ # DO IT AT THE END 
+ # ------------------------------------------------------------------------- # 
+   if [ "$OUTPUTFORMAT" == pdf ];then
+
+       # ADD ONLY ONCE 
+         if [ `echo $preOutput | grep modTeX | wc -l ` -lt 1 ];then
+               preOutput="$preOutput pdfxrequired"
+         fi
+   fi
+
+}
+
+# --------------------------------------------------------------------------- #
+
+function USEPACKAGE() {
+
+  PACKAGENAME=`echo $1 | sed 's/ //g'`
+  PACKAGEFILE=`ls ${INCLUDEPATH}/${PACKAGENAME}.* | #
+               grep "\.sty$" | head -n 1`
+
+  if [ -f "$PACKAGEFILE" ]
+   then
+       PACKAGETMP=${TMPID}.`basename ${PACKAGEFILE}`
+       cp "$PACKAGEFILE" ${PACKAGETMP}
+       PACKAGENAME=`basename ${PACKAGETMP} | sed 's/\.[a-z]*$//'`
+       echo "\usepackage{$PACKAGENAME}" >> ${TMPID}.preamble
+  fi 
+
+}
+
+# --------------------------------------------------------------------------- #
+
+function DOCUMENTCLASS() { 
+ 
+  THISDOCUMENTCLASS=`echo "$1"          | #
+                     sed 's/ //g'       | #
+                     sed 's,\},\\\\},g' | #
+                     sed 's,{,\\\\{,g'  | #
+                     sed 's,\],\\\\],g' | #
+                     sed 's,\[,\\\\[,g'`  #
+}
+
+# --------------------------------------------------------------------------- #
+
+function ADD2PREAMBLE() { echo "$*" >> ${TMPID}.preamble ; }
+
+# --------------------------------------------------------------------------- #
+  if [ `grep -s "% MAKE PAGE AMOUNT DIVIDABLE BY 4" ${TMPID}.preamble | #
+        wc -l` -lt 1 ];then
+        echo "% MAKE PAGE AMOUNT DIVIDABLE BY 4" >> ${TMPID}.preamble
+      # https://groups.google.com/forum/#!topic/de.comp.text.tex/j8wWMv8lZaM
+        echo '\newcount\vs
+              \newcount\vsi
+              \newcommand\cleartofour{
+               \mbox{}\clearpage
+               \pagestyle{empty}
+               \vs\thepage
+               \advance\vs by 3
+               \vsi\vs
+               \divide\vs by 4
+               \multiply\vs by 4
+               \ifnum\vs=\vsi\else\cleartofour\fi
+              }' >> ${TMPID}.preamble
+  fi
+# --------------------------------------------------------------------------- #
+
+function CLOSEBOOK() {
+
+   write2src "\cleartofour"
+
+ }
+
+# --------------------------------------------------------------------------- #
+

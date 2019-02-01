@@ -1,0 +1,45 @@
+% --------------------------------------------------------------------------- %
+%  C O N D I T I O N S
+% --------------------------------------------------------------------------- %
+
+%% IF BODYTEXT WORKAROUND; TO DO BETTER
+   \newif\ifbodytext
+   \bodytexttrue
+
+% SET CONDITION (AND BY THE WAY REMOVE NUMBERING (=\chapter*{x}))
+  \let\ACDCEB\chapter
+  \renewcommand\chapter[1]{\bodytextfalse\ACDCEB{#1}\bodytexttrue}
+  \let\CACACC\section
+  \renewcommand\section[1]{\bodytextfalse\CACACC{#1}\bodytexttrue}
+  \let\ECCBCE\subsection
+  \renewcommand\subsection[1]{\bodytextfalse\ECCBCE{#1}\bodytexttrue}
+  \let\FADFEC\subsubsection
+  \renewcommand\subsubsection[1]{\bodytextfalse\FADFEC{#1}\bodytexttrue}
+
+%% TODO: HEADER/FOOTER/TOC
+
+% IF FOOTNOTE (+NOT BODYTEXT)
+  \newif\iffootnote
+  \let\Footnote\footnote
+  \renewcommand\footnote[1]{%
+  \begingroup%
+  \bodytextfalse%
+  \footnotetrue\Footnote{#1}%
+  \bodytexttrue%
+  \endgroup}
+
+  \let\Footnotetext\footnotetext
+  \renewcommand\footnotetext[1]{%
+  \begingroup%
+  \bodytextfalse%
+  \footnotetrue\Footnotetext{#1}%
+  \bodytexttrue%
+  \endgroup}
+
+ %\newcommand{\rotif}{90}
+  \def\rotif{
+  \ifodd\value{page} 90
+  \else -90 \fi}
+
+
+
