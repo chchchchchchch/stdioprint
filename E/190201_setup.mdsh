@@ -1,7 +1,12 @@
 % --------------------------------------------------------------------------- %
 % EXTENDFUNCTIONS: ../lib/mdsh/page.functions
 % EXTENDFUNCTIONS: ../lib/mdsh/book-A5.functions
+% EXTENDFUNCTIONS: ../lib/mdsh/page.functions
+% ----
 % EXTENDFUNCTIONS: 181008_basic.functions
+% EXTENDFUNCTIONS: 180926_page.functions
+%!EXTENDFUNCTIONS: 190114_page.functions
+% EXTENDFUNCTIONS: 190202_page.functions
 % --------------------------------------------------------------------------- %
 % USEPACKAGE: ../lib/tex/conditions
 % USEPACKAGE: ../lib/tex/lstlanguages
@@ -63,4 +68,25 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
 tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
 quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
 cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat
+
+
+%!SPREAD: ../src/odbiz_A5x2/8x12/20190201141947.svg
+%!SPREAD: ../src/12x18.svg
+%!SPREAD: ../src/7x10.svg
+
+%!SPREAD: /home/christoph/0000_GIT/NOW/stdio/lib/svg/template/odbiz_A5x2_190201.svg
+
+% SPREAD: /home/christoph/0000_GIT/NOW/stdio/lib/svg/template/odbiz_A5xX_190202.svg 1-2
+
+% EMPTYPAGE:
+
+% SPREAD4: /home/christoph/0000_GIT/NOW/stdio/lib/svg/template/odbiz_A5xX_190202.svg 2-4
+
+% EMPTYPAGE:
+
+% SPREAD6: /home/christoph/0000_GIT/NOW/stdio/lib/svg/template/odbiz_A5xX_190202.svg 1
+% SPREAD6: /home/christoph/0000_GIT/NOW/stdio/lib/svg/template/odbiz_A5xX_190202.svg 5-6
+
+
+
 
