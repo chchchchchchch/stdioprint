@@ -18,11 +18,11 @@
         SVGTMP=${TMPKEEP}`echo $PDFSRC | md5sum | cut -c 4-9`${CID}.svg
    fi
  # ----
-   CONTINOUSPAGES=`echo $* | sed 's/ /\n/g'    | # 
-                   sed 's, --,\n--,g'          | #
-                   grep -- "^--continous"      | #
-                   head -n 1 | cut -d "=" -f 2-` #
-   CID=`echo $CONTINOUSPAGES | md5sum | cut -c 1-6`
+   CONTINUOUSPAGES=`echo $* | sed 's/ /\n/g'    | # 
+                    sed 's, --,\n--,g'          | #
+                    grep -- "^--continuous"     | #
+                    head -n 1 | cut -d "=" -f 2-` #
+   CID=`echo $CONTINUOUSPAGES | md5sum | cut -c 1-6`
  # ----
    MODIFYSVG=`echo $* | sed 's/ /\n/g'    | #
               sed 's, --,\n--,g'          | #
@@ -39,7 +39,7 @@
 
         if [ "X$SUCCESS" == "XYES" ]; then
               SVGTMP=`realpath $SVGTMP`
-              svglayers2pdfpages $SVGTMP $PDFGET $CONTINOUSPAGES $MODIFYSVG
+              svglayers2pdfpages $SVGTMP $PDFGET $CONTINUOUSPAGES $MODIFYSVG
         fi
 
         elif [ "X$EXT" == "Xpdf" ]; then
@@ -56,7 +56,7 @@
 
      CROP="10.63" # 3mm in px
      SVGLAYER="$1";PDFPAGES="$2" 
-     CONTINOUSPAGES="$3";MODIFYSVG="$4"
+     CONTINUOUSPAGES="$3";MODIFYSVG="$4"
 
      SUPERTMP=${TMPID}.`echo $SVGL | md5sum | cut -c 1-4`.tmp
      CANVASWIDTH=`sed ':a;N;$!ba;s/\n//g' $SVGLAYER | # SVG WITHOUT LINEBREAKS
@@ -72,7 +72,7 @@
                   sort -t= -k 2 -u | sort -n        | # SORT/UNIQ + SORT NUM
                   grep -v "=\"XX_"                  | # IGNORE XX LAYERS
                   cut -d '"' -f 2`                    # EXTRACT NAMES
-     CONTINOUSPAGES=`seq $CONTINOUSPAGES`
+     CONTINUOUSPAGES=`seq $CONTINUOUSPAGES`
 
       BFOO=NL`echo ${RANDOM} | cut -c 1`F00
       SFOO=SP`echo ${RANDOM} | cut -c 1`F0O
@@ -96,7 +96,7 @@
    # ----------------------------------------------------------------------- #
      COUNT=1;XSHIFT="-$CROP"
      for LAYERNAME in $LAYERNAMES
-      do for PAGE in $CONTINOUSPAGES
+      do for PAGE in $CONTINUOUSPAGES
          do  
              if [ `python -c "print $PAGE / 2.0" | # DIVIDE BY 2
                    cut -d "." -f 2` -lt 1 ]        # CUT/CHECK AFTER '.'
@@ -193,18 +193,18 @@ function SPREAD() {
    then  MODIFYSVG=""
    else  MODIFYSVG="--modifysvg=$MODIFYSVG" 
    fi
-   CONTINOUSPAGES=`echo $* | sed 's/ /\n/g'    | #
-                   sed 's, --,\n--,g'          | #
-                   grep -- "^--c="             | #
-                   head -n 1  | cut -d "=" -f 2` #
-   if [ "$CONTINOUSPAGES" == "" ]
-   then  CONTINOUSPAGES="--continous=2"
-   else  CONTINOUSPAGES="--continous=$CONTINOUSPAGES" 
+   CONTINUOUSPAGES=`echo $* | sed 's/ /\n/g'    | #
+                    sed 's, --,\n--,g'          | #
+                    grep -- "^--c="             | #
+                    head -n 1  | cut -d "=" -f 2` #
+   if [ "$CONTINUOUSPAGES" == "" ]
+   then  CONTINUOUSPAGES="--continuous=2"
+   else  CONTINUOUSPAGES="--continuous=$CONTINUOUSPAGES" 
    fi
 
    RMFLAGS=`echo $* | sed 's, --,\n--,g' | grep -v -- "^-"`
 
-   mkpages $RMFLAGS --keeptmp $CONTINOUSPAGES $MODIFYSVG
+   mkpages $RMFLAGS --keeptmp $CONTINUOUSPAGES $MODIFYSVG
 
    FIRSTPAGEIS="" # RESET
    NUMPAGES=`pdftk $PDFGET dump_data  | # GET INFO ($PDFGET SET BY mkpages)
