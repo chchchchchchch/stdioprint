@@ -6,49 +6,42 @@
            egrep "\.svg$|\.pdf$"       | # SELECT ENDING WITH .svg/.pdf
            head -n 1`                    # SELECT FIRST
       EXT=`echo $PDFSRC | rev | cut -d "." -f 1 | rev`
-
  # ----
-   KEEPTMP=`echo $* | grep -- "--keeptmp" | wc -l`  #
+   KEEPTMP=`echo $* | grep -- "--keeptmp" | wc -l` #
+ # ----
+   FLAGS=`echo $*                     | #
+          sed 's/ /\n/g' | grep "^-"  | #
+          grep -v "^--keeptmp"        | # 
+          sed ':a;N;$!ba;s/\n/ /g'`     #
+   FLAGSUM=`echo $FLAGS | sed 's/ /\n/g'    | #
+            sort | sed ':a;N;$!ba;s/\n/ /g' | #
+            md5sum | cut -c 1-6`              #
 
    if [ "$KEEPTMP" -lt 1 ];then
-        PDFGET=${TMPID}`echo $PDFSRC | md5sum | cut -c 1-6`${CID}.pdf
-        SVGTMP=${TMPID}`echo $PDFSRC | md5sum | cut -c 4-9`${CID}.svg
+        PDFGET=${TMPID}`echo $PDFSRC | md5sum | cut -c 1-6`${FLAGSUM}.pdf
+        SVGTMP=${TMPID}`echo $PDFSRC | md5sum | cut -c 4-9`${FLAGSUM}.svg
    else TMPKEEP="$TMPDIR/tmpspread"
-        PDFGET=${TMPKEEP}`echo $PDFSRC | md5sum | cut -c 1-6`${CID}.pdf
-        SVGTMP=${TMPKEEP}`echo $PDFSRC | md5sum | cut -c 4-9`${CID}.svg
+        PDFGET=${TMPKEEP}`echo $PDFSRC | md5sum | cut -c 1-6`${FLAGSUM}.pdf
+        SVGTMP=${TMPKEEP}`echo $PDFSRC | md5sum | cut -c 4-9`${FLAGSUM}.svg
    fi
- # ----
-   CONTINUOUSPAGES=`echo $* | sed 's/ /\n/g'    | # 
-                    sed 's, --,\n--,g'          | #
-                    grep -- "^--continuous"     | #
-                    head -n 1 | cut -d "=" -f 2-` #
-   CID=`echo $CONTINUOUSPAGES | md5sum | cut -c 1-6`
- # ----
-   MODIFYSVG=`echo $* | sed 's/ /\n/g'    | #
-              sed 's, --,\n--,g'          | #
-              grep -- "^--modifysvg"      | #
-              head -n 1 | cut -d "=" -f 2-` #
- # ----
 
-   if [ -f $PDFGET ]; then
-        echo "$PDFGET exists"
-   else
-        if [ "X$EXT" == "Xsvg" ]; then
+   if [ -f $PDFGET ];then echo "$PDFGET exists"
+   else if [ "$EXT" == "svg" ]; then
 
               getFile $PDFSRC $SVGTMP
 
-        if [ "X$SUCCESS" == "XYES" ]; then
+        if [ "$SUCCESS" == "YES" ]; then
               SVGTMP=`realpath $SVGTMP`
-              svglayers2pdfpages $SVGTMP $PDFGET $CONTINUOUSPAGES $MODIFYSVG
+              svglayers2pdfpages $SVGTMP $PDFGET $FLAGS
         fi
 
-        elif [ "X$EXT" == "Xpdf" ]; then
+        elif [ "$EXT" == "pdf" ]; then
 
                getFile $PDFSRC $PDFGET
                conformColor $PDFGET
-
         fi
    fi
+
  }
 
 # --------------------------------------------------------------------------- #
@@ -56,9 +49,31 @@
 
      CROP="10.63" # 3mm in px
      SVGLAYER="$1";PDFPAGES="$2" 
-     CONTINUOUSPAGES="$3";MODIFYSVG="$4"
+   # ----
+     PAGEROW=`echo $* | sed 's/ /\n/g'             | # PREPARE
+              grep "^-p=" | head -n 1              | # SELECT
+              cut -d "=" -f 2  | sed 's/[^0-9]//g'`  # SELECT/CLEAN
+     if [ "$PAGEROW" == "" ];then PAGEROW="2";fi     # SET STANDARD IF EMPTY
+   # ----
+     MODSVG=`echo $* | sed 's/ /\n/g'              | # PREPARE
+             grep "^-m=" | head -n 1               | # SELECT
+             cut -d "=" -f 2`                        # SELECT
+     if [ "$MODSVG" == "" ];then MODSVG="pgrep";fi   # SET STANDARD IF EMPTY
+   # ----
+     XOFFSET=`echo $* | sed 's/ /\n/g'             | # PREPARE
+              grep "^-x=" | head -n 1              | # SELECT
+              cut -d "=" -f 2 | sed 's/[^0-9-]//g'`  # SELECT/CLEAN
+     if [ "$XOFFSET" == "" ];then XOFFSET="0";fi     # SET STANDARD IF EMPTY
+   # ----
+     YOFFSET=`echo $* | sed 's/ /\n/g'             | # PREPARE
+              grep "^-y=" | head -n 1              | # SELECT
+              cut -d "=" -f 2 | sed 's/[^0-9-]//g'`  # SELECT/CLEAN
+     if [ "$YOFFSET" == "" ];then YOFFSET="0";fi     # SET STANDARD IF EMPTY
+   # ----
+     NOINDEX=`echo $* | grep -- "--no-index" | wc -l` #
+   # ----
 
-     SUPERTMP=${TMPID}.`echo $SVGL | md5sum | cut -c 1-4`.tmp
+     SUPERTMP=${TMPID}.`echo $SVGLAYER | md5sum | cut -c 1-4`.tmp
      CANVASWIDTH=`sed ':a;N;$!ba;s/\n//g' $SVGLAYER | # SVG WITHOUT LINEBREAKS
                   sed 's/width=/\n&/g'              | # EXTRACT WIDTH
                   grep "^width="                    | # EXTRACT WIDTH
@@ -72,7 +87,7 @@
                   sort -t= -k 2 -u | sort -n        | # SORT/UNIQ + SORT NUM
                   grep -v "=\"XX_"                  | # IGNORE XX LAYERS
                   cut -d '"' -f 2`                    # EXTRACT NAMES
-     CONTINUOUSPAGES=`seq $CONTINUOUSPAGES`
+     PAGEROW=`seq $PAGEROW`
 
       BFOO=NL`echo ${RANDOM} | cut -c 1`F00
       SFOO=SP`echo ${RANDOM} | cut -c 1`F0O
@@ -94,16 +109,17 @@
    # ----------------------------------------------------------------------- #
    # WRITE LAYERS TO SEPARATE FILES AND TRANSFORM TO PDF 
    # ----------------------------------------------------------------------- #
-     COUNT=1;XSHIFT="-$CROP"
+     COUNT=1;#XSHIFT="-$CROP"
+     XSHIFT=`python -c "print -$CROP + $XOFFSET"`
      for LAYERNAME in $LAYERNAMES
-      do for PAGE in $CONTINUOUSPAGES
+      do for PAGE in $PAGEROW
          do  
              if [ `python -c "print $PAGE / 2.0" | # DIVIDE BY 2
                    cut -d "." -f 2` -lt 1 ]        # CUT/CHECK AFTER '.'
              then  XSHIFT=`python -c "print $XSHIFT + $CROP"`
              fi
 
-             TRANSFORM="transform=\"translate($XSHIFT,0)\""
+             TRANSFORM="transform=\"translate($XSHIFT,$YOFFSET)\""
              NUM=`echo 0000$COUNT | rev | cut -c 1-4 | rev`
              LNAME=`echo $LAYERNAME | md5sum | cut -c 1-6`
                 head -n 1 ${SUPERTMP}  | # THE HEADER
@@ -120,18 +136,19 @@
               # ------------------------------------------------------------ #
               # MODIFY SVG (OPTIONAL)
               # ------------------------------------------------------------ #
-                if [ "$MODIFYSVG" != "" ];then
-                      eval $MODIFYSVG ${TMPID}_${NUM}_${LNAME}.svg
+                eval $MODSVG ${TMPID}_${NUM}_${LNAME}.svg
+              # ------------------------------------------------------------ #
+              # EXTRACT TEXT (FOR INDEXING, OPTIONAL)
+              # ------------------------------------------------------------ #
+                if [ "$NOINDEX" -lt 1 ]
+                then
+                inkscape --export-pdf=${TMPID}_${NUM}_${LNAME}.pdf \
+                         ${TMPID}_${NUM}_${LNAME}.svg
+                pdftotext -eol unix -nopgbrk ${TMPID}_${NUM}_${LNAME}.pdf - | #
+                sed '/^[ \t]*$/d' | tr -s ' ' | sed ":a;N;\$!ba;s/\n/ /g" | #
+                iconv -f utf-8 -t us-ascii//TRANSLIT | #
+                $PANDOCACTION    >  $PDFPAGES.${NUM}.txt
                 fi
-              # ------------------------------------------------------------ #
-              # EXTRACT TEXT (FOR INDEXING)
-              # ------------------------------------------------------------ #
-               #inkscape --export-pdf=${TMPID}_${NUM}_${LNAME}.pdf \
-               #         ${TMPID}_${NUM}_${LNAME}.svg
-               #pdftotext -eol unix -nopgbrk ${TMPID}_${NUM}_${LNAME}.pdf - | #
-               #sed '/^[ \t]*$/d' | tr -s ' ' | sed ":a;N;\$!ba;s/\n/ /g" | #
-               #iconv -f utf-8 -t us-ascii//TRANSLIT | #
-               #$PANDOCACTION    >  $PDFPAGES.${NUM}.txt
               # ------------------------------------------------------------ #
                 inkscape --export-pdf=${TMPID}_${NUM}_${LNAME}.pdf \
                          --export-text-to-path ${TMPID}_${NUM}_${LNAME}.svg
@@ -155,8 +172,8 @@
   }
 # --------------------------------------------------------------------------- #
 
-# CREATE UNIQUE NAME FOR MACROS USED HERE
-# ---------------------------------------
+# CREATE UNIQUE NAMES FOR MACROS USED HERE
+# ----------------------------------------
   OFFPAGETEXTMACRO="\\"`echo offpagetext$RANDOM   | md5sum | base64    | #
                         tr [:upper:] [:lower:]    | sed 's/[^a-z]//g'  | #
                         cut -c 1-6``echo $RANDOM  | md5sum             | #
@@ -185,26 +202,15 @@
 
 function SPREAD() {
 
-   MODIFYSVG=`echo $* | sed 's/ /\n/g'    | #
-              sed 's, --,\n--,g'          | #
-              grep -- "--modifysvg="      | #
-              head -n 1 | cut -d "=" -f 2-` #
-   if [ "$MODIFYSVG" == "" ]
-   then  MODIFYSVG=""
-   else  MODIFYSVG="--modifysvg=$MODIFYSVG" 
-   fi
-   CONTINUOUSPAGES=`echo $* | sed 's/ /\n/g'    | #
-                    sed 's, --,\n--,g'          | #
-                    grep -- "^--c="             | #
-                    head -n 1  | cut -d "=" -f 2` #
-   if [ "$CONTINUOUSPAGES" == "" ]
-   then  CONTINUOUSPAGES="--continuous=2"
-   else  CONTINUOUSPAGES="--continuous=$CONTINUOUSPAGES" 
-   fi
+    ARGS=`echo $* | sed 's/ /\n/g' | #
+          grep -v "^-" | sed ':a;N;$!ba;s/\n/ /g'`
+   FLAGS=`echo $*                     | #
+          sed 's/ /\n/g' | grep "^-"  | #
+          grep -v "^--consider-flags" | # 
+          sed ':a;N;$!ba;s/\n/ /g'`     #
+   if [ `echo $* | grep -- "--consider-fl" | wc -l` -lt 1 ];then FLAGS="";fi
 
-   RMFLAGS=`echo $* | sed 's, --,\n--,g' | grep -v -- "^-"`
-
-   mkpages $RMFLAGS --keeptmp $CONTINUOUSPAGES $MODIFYSVG
+   mkpages $ARGS --keeptmp $FLAGS
 
    FIRSTPAGEIS="" # RESET
    NUMPAGES=`pdftk $PDFGET dump_data  | # GET INFO ($PDFGET SET BY mkpages)
@@ -277,10 +283,12 @@ function SPREAD() {
             write2src "}"
         done
    fi
+
 }
 
 # --------------------------------------------------------------------------- #
-  function stdiolook() {
+
+ function stdiolook() {
 
    ( SVG=$1
       SW="1"
@@ -288,7 +296,9 @@ function SPREAD() {
      sed -i 's/fill:#000000\b/fill:#808080/g' $SVG
      sed -i "s/stroke-width:[0-9.]*/stroke-width:$SW/g" $SVG
    ) 
+
   }
+
 # --------------------------------------------------------------------------- #
 
 function STDIOSPREAD() {
@@ -298,7 +308,14 @@ function STDIOSPREAD() {
             grep -- "^--" | head -n 1 | #
             cut -d "x" -f 2`
 
-   SPREAD $* --c=$PAGENUM --modifysvg=stdiolook
+    ARGS=`echo $* | sed 's/ /\n/g' | #
+          grep -v "^-" | sed ':a;N;$!ba;s/\n/ /g'`
+   FLAGS=`echo $* | sed 's/ /\n/g' | #
+          grep    "^-" | sed ':a;N;$!ba;s/\n/ /g'`
+
+   SPREAD $ARGS --consider-flags --no-index \
+                -p=$PAGENUM -m=stdiolook    \
+                $FLAGS          
 
  )
 
