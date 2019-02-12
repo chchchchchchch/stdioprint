@@ -275,7 +275,7 @@ function SPREAD() {
 
    if [ -f $PDFGET ]; then
         write2src "$PAGECOMMAND"
-        for PAGENUM in `seq $P1 $P2`
+        for PAGENUM in $PAGESEQ
          do
             PDFTXT=`ls ${PDFGET}* | grep "0\{1,\}${PAGENUM}.txt"`
             write2src "${SPREADWITHTEXTMACRO}{$PDFGET}{$PAGENUM}{%"
@@ -315,7 +315,7 @@ function STDIOSPREAD() {
 
    SPREAD $ARGS --consider-flags --no-index \
                 -p=$PAGENUM -m=stdiolook    \
-                $FLAGS          
+                $FLAGS
 
  )
 
