@@ -14,7 +14,9 @@
 % --------------------------------------------------------------------------- %
   \lstdefinestyle{inline}{language={},
                          %basicstyle=\ttfamily\color{green},
-                          basicstyle=\fontfamily{ipm}\selectfont,
+                         %basicstyle=\fontfamily{ipm}\selectfont,
+                          basicstyle=\fontfamily{grm}\selectfont
+                                     \scalefont{.8},
                           breaklines=true,
                           breakatwhitespace=true,
                           upquote=true,
@@ -57,7 +59,7 @@
                \linespread{#1}   %
                \fontfamily{grm}  %
                \selectfont       %
-               \scalefont{.7},   %
+               \scalefont{.68},  %
     commentstyle=\scalefont{1},
     keywordstyle = \kwa,
     keywordstyle = [2]{\kwb},
@@ -93,7 +95,7 @@
   \newcommand{\lstsetQuaverbatim}{%
   \lstset{ %
     basicstyle=\fontencoding{T1}\linespread{1}
-               \fontfamily{grm}\selectfont\scalefont{.7},
+               \fontfamily{grm}\selectfont\scalefont{.68},
     breaklines=true,breakautoindent=false,breakindent=1em,
     aboveskip=1em,xleftmargin=0cm,showspaces=false,
     showtabs=false,columns=fixed,numbers=none,frame=none,
@@ -122,7 +124,7 @@
                                               \linespread{1}%
                                               \fontfamily{grm}%
                                               \selectfont%
-                                              \scalefont{.7}}
+                                              \scalefont{.68}}
                           }
 % --------------------------------------------------------------------------- %
   \definecolor{lsttexcomment}{cmyk}{0,0,0,0.9}
@@ -131,7 +133,7 @@
                                                 \linespread{.8}%
                                                 \fontfamily{grm}%
                                                 \selectfont%
-                                                \scalefont{.7}},%
+                                                \scalefont{.68}},%
                                   keywordstyle = [4]{\fontfamily{ipm}%
                                                      \selectfont%
                                                      \bfseries%

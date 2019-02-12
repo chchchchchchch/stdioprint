@@ -1,0 +1,93 @@
+% --------------------------------------------------------------------------- %
+% EXTENDFUNCTIONS: ../lib/mdsh/book-A5.functions
+% EXTENDFUNCTIONS: ../lib/mdsh/page.functions
+% ----
+% EXTENDFUNCTIONS: 181008_basic.functions
+% EXTENDFUNCTIONS: 180710_srccode.functions
+% --------------------------------------------------------------------------- %
+% USEPACKAGE: ../lib/tex/conditions
+% USEPACKAGE: ../lib/tex/lstlanguages
+% ---
+% DOCUMENTCLASS: [fontsize=10pt,cleardoublepage=empty]{scrbook}
+% --------------------------------------------------------------------------- %
+% PDFXTITLE: at the stdio.
+% PDFXAUTHOR: Christoph Haag
+% PDFXORG: LAFKON Publishing
+% MKPDFXCOMPLIANT:
+% ----
+% USEPACKAGE: 190121_basic
+% USEPACKAGE: 190212_srccode
+% --------------------------------------------------------------------------- %
+%!ADD2PREAMBLE: \usepackage{showframe}
+
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
+quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+consequat. Duis aute irure dolor[^]{in reprehenderit in voluptate velit} esse
+cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat
+non proident, sunt in culpa qui.[^]{officia deserunt mollit anim id est laborum}
+
+% ----
+
+  ad sdci sf sfsd
+
+% SRCCODE: plain
+
+
+% ----
+% F:../lib/mdsh/mk.sh 1-36
+% SRCCODE: bashcode
+
+
+% -----
+ _            _   
+| |_ ___  ___| |_ 
+| __/ _ \/ __| __|
+| ||  __/\__ \ |_ 
+ \__\___||___/\__|
+
+% SRCCODE: quaverbatim
+
+
+ad sdci sdfds dfds
+% SRCINLINE: for X in `seq 10`; do echo $X; done
+ad sdci sf sfsd erw sfddsfdsf sdf sdfs sdfefd dsf fds
+ad sdci sf sfsd erw sfddsfdsf sdf sdfs sdfefd dsf fds
+ad sdci sf sfsd erw sfddsfdsf sdf sdfs sdfefd dsf fds
+% SRCINLINE: echo 'asdsa' | rev | cut -c 1-4
+ad sdci sf sfsd erw sfddsfdsf sdf sdfs sdfefd dsf fds
+ad sdci sf sfsd erw sfddsfdsf sdf sdfs sdfefd dsf fds
+% SRCINLINE: echo "asdsa" | rev | cut -c 1-4 | rev | cut -c 1-4 | rev | cut -c 1-4
+ad sdci sf sfsd erw sfddsfdsf sdf sdfs sdfefd dsf fds
+ad sdci sf sfsd erw sfddsfdsf sdf sdfs sdfefd dsf fds
+ad sdci sf sfsd erw sfddsfdsf sdf sdfs sdfefd dsf fds
+ad sdci sf sfsd erw sfddsfdsf sdf sdfs sdfefd dsf fds
+ad sdci sf sfsd erw sfddsfdsf sdf sdfs sdfefd dsf fds
+ad sdci sf sfsd erw sfddsfdsf sdf sdfs sdfefd dsf fds
+
+% NEWPAGE:
+
+% ----
+% F:https://gitlab.com/chch/stdio/raw/master/lib/sh/headless.functions
+% SRCCODE: bashcode
+
+% NEWPAGE:
+
+Include by lines to remove spacing.
+
+% ----
+% F:https://gitlab.com/chch/stdio/raw/master/lib/sh/headless.functions 1-2
+% F:https://gitlab.com/chch/stdio/raw/master/lib/sh/headless.functions 4-17
+% SRCCODE: bashcode
+
+
+Indenting.
+
+% ----
+% F:https://gitlab.com/chch/stdio/raw/master/lib/sh/headless.functions 1-2
+% SRCCODE: bashcode
+% ----
+% F:https://gitlab.com/chch/stdio/raw/master/lib/sh/headless.functions 4-17
+% SRCCODE: bashcode
+
