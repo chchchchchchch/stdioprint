@@ -290,10 +290,12 @@ function SPREAD() {
 
  function stdiolook() {
 
-   ( SVG=$1
-      SW="1"
-    #sed -i 's/fill:#[a-fA-F0-9]\{6\}\b/fill:#ffffff/g' $SVG
-     sed -i 's/fill:#000000\b/fill:#808080/g' $SVG
+   ( SVG="$1"
+      SW="1.5"
+     sed -i 's/#ffffff\b/#PROTECTWHITE/g'               $SVG
+     sed -i 's/#[a-fA-F0-9]\{6\}\b/#000000/g'           $SVG
+     sed -i 's/fill:#000000\b/fill:#e6e6e6/g'           $SVG
+     sed -i 's/#PROTECTWHITE/#ffffff/g'                 $SVG
      sed -i "s/stroke-width:[0-9.]*/stroke-width:$SW/g" $SVG
    ) 
 
