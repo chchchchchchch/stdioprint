@@ -1,0 +1,222 @@
+# --------------------------------------------------------------------------- # 
+# MODIFY $TMPTEX BEFORE COMPILING PDF 
+# --------------------------------------------------------------------------- # 
+  function fixSrcCode() {
+
+ # CHANGE STANDARD ENVIRONMENT CREATED BY PANDOC  
+   sed -i 's/\\begin{lstlisting}/\\begin{plain}{10}/'        $SRCDUMP
+   sed -i 's/{lstlisting}/{plain}/'                          $SRCDUMP
+
+ # ESCAPE \http MACRO INSIDE \lstinline
+  #sed -i 's/\(lstinline!\)\(\\http{[^}]*}\)/\1°\2°/g'       $SRCDUMP
+ # RM \http MACRO INSIDE \lstinline
+   sed -i 's/\(lstinline!\)\(\\http{\)\([^}]*\)\(}\)/\1\3/g' $SRCDUMP
+
+ # CUSTOM STYLE FOR \lstinline 
+   sed -i 's,\\lstinline!,\\lstinline[style=inline]!,g'      $SRCDUMP
+
+  }
+
+ # ------------------------------------------------------------------------- # 
+ # DO IT AT THE END 
+ # ------------------------------------------------------------------------- # 
+   if [ "$OUTPUTFORMAT" == pdf ];then
+
+       # ADD ONLY ONCE 
+         if [ `echo $preOutput | grep fixSrcCode | wc -l ` -lt 1 ];then
+               preOutput="$preOutput fixSrcCode"
+         fi
+
+   elif [ "$OUTPUTFORMAT" == html ];then
+
+         sleep 0
+
+   fi
+ # ------------------------------------------------------------------------- # 
+# =========================================================================== #
+# --------------------------------------------------------------------------- #
+# TODO: ALLOW TeX CODE WITHIN QUAVERBATIM
+#       ...?
+#       ...?
+# --------------------------------------------------------------------------- #
+
+function SRCCODE() {
+
+ # ------------------------------------------------------------------------ #
+ # CHECK/SET LANGUAGE ARGUMENT
+ # ------------------------------------------------------------------------ #
+   ALLARGS="$*";THISCMD="SRCCODE";
+   ENVIRONMENT="" # RESET
+   SRCLANG=`echo $* | tr -s ' ' | #
+            cut -d " " -f 1     | #
+            sed 's/ //g'        | #
+            sed 's/[^a-z]//g'`
+
+   if [ "$SRCLANG" != "" ];then
+         ENVIRONMENT=`grep -ih "newenvironment{$SRCLANG" ${TMPID}*.sty | #
+                      grep -v "^%" | head -n 1 | #
+                      cut -d "{" -f 2 | cut -d "}" -f 1`
+   fi
+   if [ `echo $ALLARGS | sed "s/^[ ]*$SRCLANG[ ]*//" | wc -c` -gt 1 ]
+    then
+      if [ "$ENVIRONMENT" != "" ];then
+            echo $ALLARGS | sed "s/^[ ]*$SRCLANG[ ]*//" > ${TMPID}.xtract
+       else
+            echo $ALLARGS                               > ${TMPID}.xtract
+      fi
+          THISARGUMENTS=`echo $* | sed 's/\([ ]*\)\(.*\)\([ ]*\)/\2/'`
+        # ----
+        # GET NUMBER FOR CMD LINE IN (UNPROCESSED) MDSH SRC AND
+        # DISABLE CMD LINE IN MDSH SRC (PREVENT DOUBLE MATCH)
+        # ----
+          LNCMD=`grep -n "^% ${THISCMD}:" $MDSH    | # FIND CMD LINE
+                 grep -- "$THISARGUMENTS"          | # MATCH OPTIONS
+                 head -n 1 | cut -d ":" -f 1`        # SELECT LAST MATCH
+          sed -i "${LNCMD}s/^% $THISCMD:/%X${THISCMD}:/" $MDSH 
+    else
+         getVerbatim "$THISCMD" ${TMPID}.xtract 
+   fi
+   if [ "$ENVIRONMENT" == "" ];then ENVIRONMENT="plain"; fi
+
+ # ------------------------------------------------------------------------ #
+ # LOOP THROUGH EXTRACT AND BRUTE FORCE getFile
+ # ------------------------------------------------------------------------ #
+ ( IFS=$'\n'
+   for L in `grep -n "" ${TMPID}.xtract`
+    do L=`echo $L | cut -d ":" -f 2-` # cat SKIPPED EMPTY LINES?
+       if [ `echo $L | egrep -- "^[ ]*%[ ]*F:|-F=" | wc -l` -gt 0 ];then
+
+         TRY=`echo $L          | # DISPLAY LINE
+              sed 's/-F=/F:/g' | # CONFORM SYNTAX
+              cut -d ":" -f 2- | # SELECT FIELD (AFTER ':')
+              sed 's/^[ ]*//'  | # RM LEADING BLANKS
+              cut -d " " -f 1`   # SELECT FIELD (BEFORE ' ')
+         getFile $TRY tmp.tmp
+
+         if [ "$SUCCESS" == "YES" ];then
+               LINES=`echo $L | sed "s/ /\n/g" | # SPACES TO NEWLINES 
+                      sed "/[^0-9\\-]/d"       | # NUMBERS AND - ONLY
+                      grep -v "^[ ]*$"         | # NO EMPTY LINES
+                      egrep -v "^-|-$"         | # IGNORE ISOLATED - 
+                      tail -n 1`                 # LAST LINE ONLY
+               if [ "$LINES" != "" ];then
+                     LINES=`echo $LINES | sed 's/-/,/'`
+                     SELECTLINES="sed -n \"${LINES}p\" "
+                else
+                     SELECTLINES="tee"
+               fi
+               cat   tmp.tmp       | # START WITH ALL
+               eval "$SELECTLINES" | # DO SELECT LINE RANGE
+               tee                 >> ${TMPID}SRCCODE.tmp
+               rm tmp.tmp
+         fi
+       else
+            echo "$L"               >> ${TMPID}SRCCODE.tmp
+       fi
+   done;)
+
+   mv ${TMPID}SRCCODE.tmp ${TMPID}.xtract
+
+ # ------------------------------------------------------------------------ #
+ # SUBSTITUTES FOR ESCAPE
+ # ------------------------------------------------------------------------ #
+   LSTESCA="\\"`echo lstescapestart | md5sum    | #
+                base64 | tr [:upper:] [:lower:] | #
+                sed 's/[^a-z]//g' | cut -c 1-8  | #
+                tee``echo $RANDOM | md5sum      | #
+                sed 's/[^a-f]//g' | cut -c 1-4`   #
+   LSTESCZ="\\"`echo lstescapeclose | md5sum    | #
+                base64 | tr [:upper:] [:lower:] | #
+                sed 's/[^a-z]//g' | cut -c 1-8  | #
+                tee``echo $RANDOM | md5sum      | #
+                sed 's/[^a-f]//g' | cut -c 1-4`   #
+
+   echo "\newcommand{$LSTESCA}{\textbackslash\%*}" >> $SRCDUMP
+   echo "\newcommand{$LSTESCZ}{*)}"                >> $SRCDUMP
+ # ----
+   if [ `grep "\unidummy" $SRCDUMP | wc -l` -lt 1 ];then
+         echo "\newcommand{\unidummy}{\ding{53}}" >> $SRCDUMP ;fi
+ # ------------------------------------------------------------------------ #
+ # MODIFY EXTRACT
+ # ------------------------------------------------------------------------ #
+   UTF8MACROMAP="$SHDIR/../tex/utf8-macro-map.txt"
+   unIndent ${TMPID}.xtract
+   cat -s ${TMPID}.xtract > tmp.tmp # RM CONSECUTIVE EMPTY LINES
+   mv tmp.tmp ${TMPID}.xtract       # MOVE BACK IN PLACE
+
+      # ----
+        sed -i -e "s,\\\%\*,${LSTESCA},g" \
+               -e "s,\*),\\${LSTESCZ},g"   \
+               -e "s,${LSTESCA},%*\\\&*),g" \
+               -e "s,\\${LSTESCZ},%*&*),g" ${TMPID}.xtract
+        sed -i 's/^[ \t]*$/%*\\emptylinelst*)/' ${TMPID}.xtract
+      # ----
+        for C in `sed 's/./\n&/g' ${TMPID}.xtract | #
+                  sort -u | grep -P "[\x80-\xFF]"`
+         do  #INFO=`echo $C | #
+             #      recode utf8..dump-with-names | #
+             #      tail -2 | head -1` #
+             #UNICODE=`echo $INFO | cut -d " " -f 1`
+
+             MACROLN=`grep -n "^\\\\\\\" $UTF8MACROMAP | #
+                      sed 's/[ ]\+/:/g'                | #
+                      cut -d ":" -f 1,3                | #
+                      grep "${C}$"                     | #
+                      head -n 1                        | #
+                      cut -d ":" -f 1`
+
+             if [ "$MACROLN" != "" ];then
+                   CMACRO=`sed -n "${MACROLN}p" $UTF8MACROMAP | #
+                           cut -d " " -f 1`
+             else
+                   CMACRO="\unidummy"
+             fi
+
+             sed -i "s/$C/%*\\$CMACRO*)/g" ${TMPID}.xtract
+        done
+      # ----
+
+   LN=`wc -l ${TMPID}.xtract | cut -d " " -f 1`
+ # ------------------------------------------------------------------------ #
+   VERBATIM=${TMPID}.`md5sum ${TMPID}.xtract | cut -c 1-8`.verbatim
+   mv ${TMPID}.xtract $VERBATIM
+
+   if [ "$OUTPUTFORMAT" == pdf ];then
+
+      write2src "\lstinput${ENVIRONMENT}{$VERBATIM}"
+
+   elif [ "$OUTPUTFORMAT" == html ];then
+
+      write2src "<pre><code class=\"${ENVIRONMENT}\">"
+       cat ${TMPID}.xtract >> $SRCDUMP
+      write2src '</code></pre>'
+
+   fi
+ # ------------------------------------------------------------------------ #
+ # DEBUG/DEV
+ # cp $VERBATIM debug.`date +%s%N `.verbatim
+
+}
+
+# --------------------------------------------------------------------------- #
+
+function SRCINLINE() {
+
+   PSPC="%*\\\lstipipespace*)"
+
+   SRCCDNLN=`echo $*                           | # DISPLAY ALL ARGS
+             sed 's/^[ ]*//'                   | # RM LEADING SPACE
+             sed "s/[ ]\+|[ ]\+/$PSPC|$PSPC/g" | # SUBSTITUTE SPACE AROUND '|'
+             sed 's/ /%*\\\lstinobreak*)/g'    | # REMAINING SPACES NOT BREAKABLE
+             tee`
+
+   if [ "$OUTPUTFORMAT" == pdf ];then
+
+         echo '\lstinline[style=inline]!'"$SRCCDNLN"'!' >> $SRCDUMP
+
+   elif [ "$OUTPUTFORMAT" == html ];then sleep 0; fi
+
+}
+
+# --------------------------------------------------------------------------- #
+
