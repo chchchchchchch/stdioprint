@@ -70,23 +70,78 @@ quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
 cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat
 
 
-%!SPREAD: ../src/odbiz_A5x2/8x12/20190201141947.svg
-%!SPREAD: ../src/12x18.svg
-%!SPREAD: ../src/7x10.svg
+% SPREAD: E/MASTER_A5x2-TEMPLATE.svg
 
-%!SPREAD: /home/christoph/0000_GIT/NOW/stdio/lib/svg/template/odbiz_A5x2_190201.svg
+% --------------------------------------------------------------------------- %
 
-% SPREAD: /home/christoph/0000_GIT/NOW/stdio/lib/svg/template/odbiz_A5xX_190202.svg 1-2
+% STDIOSPREAD: ../src/odbiz_A5/A5x3/20190207145744_08x18.svg -x=-20 -y=15
 
-% EMPTYPAGE:
+% STDIOSPREAD: ../src/odbiz_A5/A5x3/20190207151634_08x18.svg -x=-20 -y=15
 
-% SPREAD4: /home/christoph/0000_GIT/NOW/stdio/lib/svg/template/odbiz_A5xX_190202.svg 2-4
+% STDIOSPREAD: ../src/odbiz_A5/A5x3/20190207174852_08x18.svg -y=10
 
-% EMPTYPAGE:
+% STDIOSPREAD: ../src/odbiz_A5/A5x3/20190207175436_08x18.svg
 
-% SPREAD6: /home/christoph/0000_GIT/NOW/stdio/lib/svg/template/odbiz_A5xX_190202.svg 1
-% SPREAD6: /home/christoph/0000_GIT/NOW/stdio/lib/svg/template/odbiz_A5xX_190202.svg 5-6
+% CLEARTOLEFT:
+% STDIOSPREAD: ../src/odbiz_A5/A5x3/20190207142358_08x18.svg 1 -x=-40 -y=10
+% STDIOSPREAD: ../src/odbiz_A5/A5x3/20190207142358_08x18.svg 2 -y=10
+% STDIOSPREAD: ../src/odbiz_A5/A5x3/20190207142358_08x18.svg 3 -x=30 -y=10
 
+% STDIOSPREAD: ../src/odbiz_A5/A5x3/20190207141525_08x18.svg -y=10
 
+% STDIOSPREAD: ../src/odbiz_A5/A5x3/20190207164435_08x18.svg -y=10
 
+% STDIOSPREAD: ../src/odbiz_A5/A5x3/20190207180628_08x18.svg -y=5
+
+% STDIOSPREAD: ../src/odbiz_A5/A5x3/20190207165558_08x18.svg
+
+% STDIOSPREAD: ../src/odbiz_A5/A5x3/20190207141335_08x18.svg -y=10
+
+% STDIOSPREAD: ../src/odbiz_A5/A5x3/20190207172554_08x18.svg -y=15
+
+% STDIOSPREAD: ../src/odbiz_A5/A5x3/20190207153546_08x18.svg -y=10
+
+% STDIOSPREAD: ../src/odbiz_A5/A5x3/20190204121112_08x18.svg -y=-10
+
+% --------------------------------------------------------------------------- %
+
+% STDIOSPREAD: ../src/odbiz_A5/A5x2/20190204125712_10x14.svg
+
+% CLEARTOLEFT:
+% STDIOSPREAD: ../src/odbiz_A5/A5x2/20190204124529_10x14.svg 1
+% STDIOSPREAD: ../src/odbiz_A5/A5x2/20190204124529_10x14.svg 2 -x=15
+
+% STDIOSPREAD: ../src/odbiz_A5/A5x2/20190201141947_08x12.svg
+
+% STDIOSPREAD: ../src/odbiz_A5/A5x2/20190204122956_10x14.svg -y=-10
+
+% STDIOSPREAD: ../src/odbiz_A5/A5x2/20190204132630_12x18.svg
+
+% STDIOSPREAD: ../src/odbiz_A5/A5x2/20190204133954_12x18.svg
+
+% STDIOSPREAD: ../src/odbiz_A5/A5x2/20190204141704_08x12.svg -x=15 -y=30
+
+% CLEARTOLEFT:
+% STDIOSPREAD: ../src/odbiz_A5/A5x2/20190204130905_15x21.svg 1 -y=-10
+% STDIOSPREAD: ../src/odbiz_A5/A5x2/20190204130905_15x21.svg 2 -x=15 -y=-10
+
+% STDIOSPREAD: ../src/odbiz_A5/A5x2/20190204135243_08x12.svg -y=25
+
+% --------------------------------------------------------------------------- %
+
+% STDIOSPREAD: ../src/odbiz_A5/A5x4/20190204145208_12x36.svg
+
+% STDIOSPREAD: ../src/odbiz_A5/A5x4/20190204153555_06x18.svg -y=-20
+
+%!CLEARTOLEFT:
+%!STDIOSPREAD: ../src/odbiz_A5/A5x4/20190204143004_08x24.svg 1-2 -y=-10
+%!STDIOSPREAD: ../src/odbiz_A5/A5x4/20190204143004_08x24.svg 3 -x=-20 -y=-10
+%!STDIOSPREAD: ../src/odbiz_A5/A5x4/20190204143004_08x24.svg 3 -x=20 -y=-10
+
+% CLEARTOLEFT:
+% STDIOSPREAD: ../src/odbiz_A5/A5x4/20190204143004_08x24.svg 1-2 -y=-10
+% STDIOSPREAD: ../src/odbiz_A5/A5x4/20190204143004_08x24.svg 3 -x=-20 -y=-10
+% STDIOSPREAD: ../src/odbiz_A5/A5x4/20190204143004_08x24.svg 4 -x=40 -y=-10
+
+% --------------------------------------------------------------------------- %
 
