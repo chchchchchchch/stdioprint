@@ -1,0 +1,177 @@
+
+% --------------------------------------------------------------------------- %
+%  C O D E   E N V I R O N M E N T S
+% --------------------------------------------------------------------------- %
+
+  \newcommand{\emptylinelst}{\vspace{-.5\baselineskip}}
+
+  \newcommand{\kwa}{\bfseries}
+  \newcommand{\kwb}{\kwa}
+  \newcommand{\kwc}{}
+
+% =========================================================================== %
+% 
+% --------------------------------------------------------------------------- %
+  \lstdefinestyle{inline}{language={},
+                         %basicstyle=\ttfamily\color{green},
+                          basicstyle=\fontfamily{ipm}\selectfont,
+                          breaklines=true,
+                          breakatwhitespace=true,
+                          upquote=true,
+                        % https://tex.stackexchange.com/a/24532
+                          inputencoding=utf8,
+                          extendedchars=true,
+                        % https://tex.stackexchange.com/questions/49021/
+                        % -> why-doesnt-newline-work-inside-lstlisting
+                          escapeinside={\%*}{*)},
+                          literate={`}{{\`{}}}1
+                                   {'}{\textquotesingle}1}
+
+ %\newcommand{\lstispace}{\hfill\hspace{.2em}}
+  \newcommand{\lstispace}{\hspace{.3em plus .2em minus .2em}}
+  \newcommand{\lstinobreak}{\nobreak\hspace{.5em plus .5em minus .2em}}
+  \newcommand{\lstipipespace}{\hspace{1em plus .5em minus .5em}}
+
+ % https://tex.stackexchange.com/questions/357227/
+ % -> adding-background-color-to-verb-or-lstinline-command-without-colorbox
+  \usepackage{xpatch}
+ % ----
+  \makeatletter
+  \xpretocmd\lstinline{\lstispace %
+                       \bgroup\appto\lst@DeInit{\egroup %
+                       \lstispace}}{}{}
+  \makeatother
+ % https://tex.stackexchange.com/questions/43526/
+ % -> escaping-in-lstinline
+  \usepackage{etoolbox}
+  \makeatletter
+  \patchcmd{\lsthk@TextStyle}{\let\lst@DefEsc\@empty}{}{}{}
+  \makeatother
+
+% =========================================================================== %
+% 
+% --------------------------------------------------------------------------- %
+  \newcommand{\lstsetCode}[1]{%
+  \lstset{ %
+    basicstyle=\fontencoding{T1} %
+               \linespread{#1}   %
+               \fontfamily{grm}  %
+               \selectfont       %
+               \scalefont{.7},   %
+    commentstyle=\scalefont{1},
+    keywordstyle = \kwa,
+    keywordstyle = [2]{\kwb},
+    keywordstyle = [3]{\kwc},
+    keywordstyle = [4]{\color{green}},
+    stringstyle=\scalefont{1},
+    showspaces=false,
+    showtabs=false,
+    columns=fixed,
+    numbers=none,
+    frame=none,
+    numberstyle=\tiny,
+    breaklines=false,
+    breakatwhitespace=false,
+    showstringspaces=false,
+    aboveskip=1em,
+    xleftmargin=.2em,
+    upquote=true,
+  % https://tex.stackexchange.com/a/24532
+    inputencoding=utf8,
+    extendedchars=true,
+    literate={`}{{\`{}}}1
+             {-}{\textemdash}1 { }{{\,}}1
+             {'}{\textquotesingle}1,
+   %escapechar=°
+    escapeinside={\%*}{*)}
+   }\renewcommand{\emptylinelst}{\vspace{1.5\baselineskip 
+                                   plus  0.5\baselineskip
+                                   minus 1.0\baselineskip}
+                                  \pagebreak[0]}
+  }
+% --------------------------------------------------------------------------- %
+  \newcommand{\lstsetQuaverbatim}{%
+  \lstset{ %
+    basicstyle=\fontencoding{T1}\linespread{1}
+               \fontfamily{grm}\selectfont\scalefont{.7},
+    breaklines=true,breakautoindent=false,breakindent=1em,
+    aboveskip=1em,xleftmargin=0cm,showspaces=false,
+    showtabs=false,columns=fixed,numbers=none,frame=none,
+    showstringspaces=false,upquote=true,keywords={},
+    escapeinside={\%*}{*)},% escapechar=°,
+    inputencoding=utf8,extendedchars=true,
+    literate={Á}{{\'A}}1 {Ã}{{\~A}}1 {É}{{\'E}}1
+             {á}{{\'a}}1 {ã}{{\~a}}1 {é}{{\'e}}1
+             {À}{{\`A}}1 {è}{{\`E}}1 {Ò}{{\`O}}1
+             {à}{{\`a}}1 {è}{{\`e}}1 {ò}{{\`o}}1
+             {Ö}{{\"O}}1 {Ü}{{\"U}}1 {Ä}{{\"A}}1
+             {ö}{{\"o}}1 {ü}{{\"u}}1 {ä}{{\"a}}1
+             {»}{\guillemotleft}1 {«}{\guillemotright}1
+             {'}{\textquotesingle}1 {€}{\euro}1
+             {-}{\textemdash}1 { }{{\,}}1
+    }\renewcommand{\emptylinelst}{\vspace{0.5\baselineskip 
+                                    plus  0.5\baselineskip
+                                    minus 1.0\baselineskip}
+                                \pagebreak[2]}
+   }
+% --------------------------------------------------------------------------- %
+  \newcommand{\lstsetBash}{\lstset{language=Bash+,
+                                   morekeywords = [2]{write2src,getFile,
+                                                      mkqr,getVerbatim},
+                                   basicstyle=\fontencoding{T1}%
+                                              \linespread{1}%
+                                              \fontfamily{grm}%
+                                              \selectfont%
+                                              \scalefont{.7}}
+                          }
+% --------------------------------------------------------------------------- %
+  \definecolor{lsttexcomment}{cmyk}{0,0,0,0.9}
+  \newcommand{\lstsetTeX}{\lstset{language = {TeX+},
+                                  basicstyle = {\fontencoding{T1}%
+                                                \linespread{.8}%
+                                                \fontfamily{grm}%
+                                                \selectfont%
+                                                \scalefont{.7}},%
+                                  keywordstyle = [4]{\fontfamily{ipm}%
+                                                     \selectfont%
+                                                     \bfseries%
+                                                     \scalefont{.95}},%
+                                  commentstyle = {\color{lsttexcomment}%
+                                                  \scalefont{.9}}
+                         }
+       \renewcommand{\emptylinelst}{\vspace{0.2\baselineskip 
+                                      plus  2.5\baselineskip
+                                      minus 2.0\baselineskip}
+                                    \pagebreak[2]}
+  }
+% --------------------------------------------------------------------------- %
+  \newcommand{\lstReset}{\lstset{language={},keywords={}}
+               \renewcommand{\emptylinelst}{\vspace{0.5\baselineskip 
+                                              plus  0.5\baselineskip
+                                              minus 1.0\baselineskip}
+              }}
+% =========================================================================== %
+% ENVIRONMENTS (CURRENTLY USED TO CHECK ONLY)
+% --------------------------------------------------------------------------- %
+        \lstnewenvironment{plain}[1]{\lstsetCode{1}\lstReset}{}
+     \lstnewenvironment{bashcode}[1]{\lstsetCode{1.5}\lstsetBash}{}
+      \lstnewenvironment{texcode}[1]{\lstsetCode{1.5}\lstsetTeX}{}
+  \lstnewenvironment{quaverbatim}[1]{\lstReset\lstsetQuaverbatim}{}
+% =========================================================================== %
+% INPUT COMMANDS
+% --------------------------------------------------------------------------- %
+        \newcommand{\lstinputplain}[1]{\lstsetCode{1} %
+                                       \lstReset %
+                                       \smallskip
+                                       \lstinputlisting{#1}
+                                       \smallskip}
+     \newcommand{\lstinputbashcode}[1]{\lstsetCode{1.5} %
+                                       \lstsetBash %
+                                       \lstinputlisting{#1}}
+      \newcommand{\lstinputtexcode}[1]{\lstsetCode{1} %
+                                       \lstsetTeX %
+                                       \lstinputlisting{#1}}
+  \newcommand{\lstinputquaverbatim}[1]{\lstsetQuaverbatim %
+                                       \lstinputlisting{#1}}
+% --------------------------------------------------------------------------- %
+
