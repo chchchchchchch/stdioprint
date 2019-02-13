@@ -60,7 +60,7 @@
 
   (     LSNAME=`echo $* | sed 's/ /\n/g' | #
                 rev | cut -d "/" -f 1 | rev | #
-                egrep "^[a-z]+$|^[0-9a-f]{32}$" | #
+                egrep "^[a-z]+$|^s*[0-9a-f]{32}$" | #
                 tail -n 1`
      TIMERANGE=`echo $* | sed 's/ /\n/g' | #
                 grep "^[0-9]\{10\}" | tail -n 1`
@@ -148,7 +148,7 @@ function SHOWIOS() {
  # ------------------------------------------------------------------------- #
    LSFILE=`echo $* | sed 's/ /\n/g' | #
            sed 's/F:/\n&/g' | grep "^F:" | #
-           egrep "/[a-z]+$|/[0-9a-f]{32}$" | #
+           egrep "/[a-z]+$|/s*[0-9a-f]{32}$" | #
            tail -n 1 | cut -d ":" -f 2-`
    TIMERANGE=`echo $* | sed 's/ /\n/g' | #
               grep "^[0-9]\{10\}" | tail -n 1`
