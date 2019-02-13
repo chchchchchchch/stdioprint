@@ -212,16 +212,19 @@ function SHOWIOS() {
         SHORTID=`echo $SHOWIONAME | cut -c 7-13`
        SHORTURL="https://freeze.sh/IO$SHORTID"     
          TXTURL="*/IO$SHORTID";QURL="$SHORTURL"
-
-         IOMKID=`echo $SHOWIONAME      | #
-                 cut -d "_" -f 1-5     | #
-                 md5sum | cut -c 1-8`    #
-       IOMKNAME=`echo $SHOWIONAME      | #
+         IONAME=`echo $SHOWIONAME      | #
                  tr [:lower:] [:upper:]` #
+
+        IOMKID=`echo $SHOWIONAME       | #
+                cut -d "_" -f 1-5      | #
+                md5sum | cut -c 1-8    | #
+                tr [:lower:] [:upper:]`  #
         IOMKURL="${IOSVGBASEURL}/${SHOWIO}.svg"
         IOMKSRC="${TMPID}.${SHOWIO}.svg"
 
-    if [ ! -f "${TMPKEEP}${IOMKID}.pdf" ];then
+
+    if [ `ls ${TMPKEEP}${IOMKID}*.pdf 2>/dev/null | wc -l` -lt 4 ]
+     then
 
      echo "GENERATING SHOWIO ($SHOWIONAME)"
 
@@ -243,36 +246,52 @@ function SHOWIOS() {
      fi
    # --------------------------------------------------------------------- #
      ROTATE="0" # RESET
- 
-     echo '<svg width="400" height="400"'        >  ${TMPID}.${IOMKID}.svg
+     IOMKNAME="${TMPID}.${IOMKID}"
+     IOMKMAIN="${IOMKNAME}.MAIN.svg"
+     IOMKINFO="${IOMKNAME}.INFO.svg"
+     IOMKCODE="${IOMKNAME}.CODE.svg"
+
+     echo '<svg width="400" height="400"' | #
+     tee                                                     $IOMKMAIN | #
+     tee                                                     $IOMKINFO | #
+     tee                                                   > $IOMKCODE 
+
      echo ' xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-            xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape">
-            >'                                   >> ${TMPID}.${IOMKID}.svg
+            xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape">' | #
+     tee -a                                                  $IOMKMAIN | #
+     tee -a                                                  $IOMKINFO | #
+     tee                                                  >> $IOMKCODE   #       
+
      echo '<path d="m -200,-200 800,0 0,800 -800,0 z"
             style="fill:none;stroke:none"
-            id="buffer" />'                      >> ${TMPID}.${IOMKID}.svg
+            id="buffer" />' | #
+     tee -a                                                  $IOMKMAIN | #
+     tee -a                                                  $IOMKINFO | #
+     tee >>                                                  $IOMKCODE   #
 
-     sed ":a;N;\$!ba;s/\n//g" $IOMKSRC | #
+     sed ":a;N;\$!ba;s/\n//g" $IOMKSRC                   | #
      sed 's/<g/\n&/g' | grep  '^<g' | sed 's/<\/svg>//g' | #
-     tr -s ' '                      | #
+     tr -s ' '                                           | #
      sed 's/stroke-width:[0-9\.]*/stroke-width:4/g'      | #
      sed "s/#[Ff]\{6\}\b/$PROTECTWHITE/g"                | #
      sed 's/fill:#[a-fA-F0-9]\{6\}\b/fill:#cccccc/g'     | #
      sed 's/stroke:#[a-fA-F0-9]\{6\}\b/stroke:#bbbbbb/g' | #
      sed "s/$PROTECTWHITE/#ffffff/g"                     | #
-     tee                                         >> ${TMPID}.${IOMKID}.svg
+     tee                                                  >> $IOMKMAIN   #
+
      echo '<path d="m 40.5,40.5 319,0 0,319 -319,0 0,-319 z"
             style="fill:none;stroke:#000000;stroke-width:1"
-            id="innerframe" />'                  >> ${TMPID}.${IOMKID}.svg 
+            id="innerframe" />' | #
+     tee                                                  >> $IOMKMAIN   #
    # -----
        for CONNECT in `basename $SHOWIO   | #
                        cut -d "_" -f 2-5  | #
                        sed 's/_/ /g'`
         do  TRANSFORM="transform=\"rotate($ROTATE 200 200)\""
-            echo "<g $TRANSFORM>"                >> ${TMPID}.${IOMKID}.svg
+            echo "<g $TRANSFORM>"                         >> $IOMKMAIN   #
             CNCTPATHUSE="CNCTPATH$CONNECT"
-            echo ${!CNCTPATHUSE}                 >> ${TMPID}.${IOMKID}.svg
-            echo "</g>"                          >> ${TMPID}.${IOMKID}.svg
+            echo ${!CNCTPATHUSE}                          >> $IOMKMAIN   #
+            echo "</g>"                                   >> $IOMKMAIN   #
             ROTATE=`expr $ROTATE + 90`
        done
    # -----
@@ -280,30 +299,50 @@ function SHOWIOS() {
             style=\"${FONTSTYLESHARED};font-size:28px;\" 
             x=\"40\" y=\"430\"><tspan sodipodi:role=\"line\"
             x=\"40\" y=\"430\">$TXTURL</tspan></text>" | #
-     tee                                         >> ${TMPID}.${IOMKID}.svg
+     tee                                                  >> $IOMKINFO   #
      echo "<text xml:space=\"preserve\"
             style=\"${FONTSTYLESHARED};font-size:10px;\" 
             x=\"40\" y=\"450\"><tspan sodipodi:role=\"line\"
-            x=\"40\" y=\"450\">$IOMKNAME</tspan></text>" | #
-     tee                                         >> ${TMPID}.${IOMKID}.svg
+            x=\"40\" y=\"450\">$IONAME</tspan></text>" | #
+     tee                                                  >> $IOMKINFO   #
  
-     echo "<g $QRTRANSFORM>"                     >> ${TMPID}.${IOMKID}.svg
+     echo "<g $QRTRANSFORM>"                              >> $IOMKCODE   #
      sed ':a;N;$!ba;s/\n/ /g' ${QRNAME}.svg | #
      tr -s ' ' | sed 's/</\n&/g' | #
-     grep "^<path"                               >> ${TMPID}.${IOMKID}.svg
-     echo "</g>"                                 >> ${TMPID}.${IOMKID}.svg
+     grep "^<path"                                        >> $IOMKCODE   #
+     echo "</g>"                                          >> $IOMKCODE   #
  
-     echo '</svg>'                               >> ${TMPID}.${IOMKID}.svg
+     echo '</svg>' | #
+     tee -a                                                  $IOMKMAIN | #
+     tee -a                                                  $IOMKINFO | #
+     tee                                                  >> $IOMKCODE   #
  
-   # --------------------------------------------------------------------- #
-     inkscape --export-area-drawing \
-              --export-pdf=${TMPKEEP}${IOMKID}.pdf \
-              ${TMPID}.${IOMKID}.svg
- 
+   # --------------------------------------------------------------------- # 
+     for LAYER in MAIN INFO CODE
+      do inkscape --export-area-drawing \
+                  --export-pdf=${IOMKNAME}.${LAYER}.pdf \
+                  ${IOMKNAME}.${LAYER}.svg ;done
+   # --------------------------------------------------------------------- # 
+
+     pdftk       ${IOMKNAME}.INFO.pdf       \
+      background ${IOMKNAME}.MAIN.pdf       \
+       output    ${TMPKEEP}${IOMKID}MI0.pdf
+
+     pdftk       ${IOMKNAME}.CODE.pdf       \
+      background ${IOMKNAME}.MAIN.pdf       \
+       output    ${TMPKEEP}${IOMKID}M0Q.pdf
+
+     pdftk       ${IOMKNAME}.CODE.pdf       \
+      background ${TMPKEEP}${IOMKID}MI0.pdf \
+       output    ${TMPKEEP}${IOMKID}MIQ.pdf
+
+     cp ${IOMKNAME}.MAIN.pdf ${TMPKEEP}${IOMKID}M00.pdf
+   # --------------------------------------------------------------------- # 
+
     else echo "SHOWIO IS DONE ($SHOWIONAME)"
     fi
 
-    SHOWIOGRID="${SHOWIOGRID},${TMPKEEP}${IOMKID}.pdf,{1}"
+    SHOWIOGRID="${SHOWIOGRID},${TMPKEEP}${IOMKID}MIQ.pdf,{1}"
 
    done
 
