@@ -1,0 +1,61 @@
+% --------------------------------------------------------------------------- %
+% EXTENDFUNCTIONS: ../lib/mdsh/book-A5.functions
+% EXTENDFUNCTIONS: ../lib/mdsh/page.functions
+% ----
+% EXTENDFUNCTIONS: 181008_basic.functions
+% EXTENDFUNCTIONS: 190212_showios.functions
+% --------------------------------------------------------------------------- %
+% USEPACKAGE: ../lib/tex/conditions
+% USEPACKAGE: ../lib/tex/lstlanguages
+% ---
+% DOCUMENTCLASS: [fontsize=10pt,cleardoublepage=empty]{scrbook}
+% --------------------------------------------------------------------------- %
+% PDFXTITLE: at the stdio.
+% PDFXAUTHOR: Christoph Haag
+% PDFXORG: LAFKON Publishing
+% MKPDFXCOMPLIANT:
+% ----
+% USEPACKAGE: 190121_basic
+% --------------------------------------------------------------------------- %
+%!ADD2PREAMBLE: \usepackage{showframe}
+
+
+% --------
+% A77355DA227FBB-R+_00_00_UB_UW_
+% 34317F20B53ED6-R+_00_SW_UW_CW_
+% B5FC468E8378CC-R+_SW_UW_00_CB_
+% 46292D0007D3C5-R+_UW_CW_UW_SW_
+% CD14AA3FE7607D-R+_CB_CB_CB_00_
+% 2C4B9523A5877A-R+_CW_II_00_II_
+% 204031C93D1EA8-R+_UW_SW_00_00_
+% 664C4DC7D9A71D-R+_UW_00_UB_SB_
+% FB5B93FFDF1AC1-R+_UW_SW_SW_00_
+% 2ACF66F4159536-R+_00_CB_UB_00_
+% 2ACF2B6B3222FE-R+_00_CW_UW_00_
+% AA8F81EDE5D1EE-R+_00_00_SW_00_
+% B4A4DD2F23C0B7-R+_00_00_UW_00_
+% 0914297994FC61-R+_00_UB_00_SW_
+% 404BDF6CBFF97D-R+_SB_00_00_UW_
+% B4A4485F387ED9-R+_00_00_UB_00_
+% 95E83BAC589921-R+_UW_II_UW_II_
+%!SHOWIOS:
+
+%!SHOWIOS: F:https://freeze.sh/_/ioio/l/minimal
+%!SHOWIOS: F:https://freeze.sh/_/ioio/l/kreuzen 1902071700-1902071712
+%!SHOWIOS: F:https://freeze.sh/_/ioio/l/kreuzen
+
+% --------
+% F:https://freeze.sh/_/ioio/l/feet
+%!F:https://freeze.sh/_/ioio/l/minimal
+%!95E83BAC589921-R+_UW_II_UW_II_
+% F:https://freeze.sh/_/ioio/l/kreuzen 1902071700-1902071730
+% SHOWIOS:
+
+% --------
+% A77355DA227FBB-R+_00_00_UB_UW_
+% 34317F20B53ED6-R+_00_SW_UW_CW_
+% B5FC468E8378CC-R+_SW_UW_00_CB_
+% 46292D0007D3C5-R+_UW_CW_UW_SW_
+% SHOWIOS:
+
+
