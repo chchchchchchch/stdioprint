@@ -152,6 +152,16 @@ function SHOWIOS() {
            tail -n 1 | cut -d ":" -f 2-`
    TIMERANGE=`echo $* | sed 's/ /\n/g' | #
               grep "^[0-9]\{10\}" | tail -n 1`
+   FLAGS=`echo $* | sed 's/ /\n/g' | grep "^-"`
+   if   [ `echo "$FLAGS" | #
+           grep -- "-noqr"   | wc -l` -gt 0 ];then DISPLAYMODE="NOQR"
+   elif [ `echo "$FLAGS" | #
+           grep -- "-notxt"  | wc -l` -gt 0 ];then DISPLAYMODE="NOTXT"
+   elif [ `echo "$FLAGS" | #
+           grep -- "-noinfo" | wc -l` -gt 0 ];then DISPLAYMODE="NOINFO"
+   else    DISPLAYMODE="" # RESET
+   fi
+
  # ------------------------------------------------------------------------- #
    if [ "$LSFILE" != "" ];then
 
@@ -211,7 +221,7 @@ function SHOWIOS() {
 
         SHORTID=`echo $SHOWIONAME | cut -c 7-13`
        SHORTURL="https://freeze.sh/IO$SHORTID"     
-         TXTURL="*/IO$SHORTID";QURL="$SHORTURL"
+         TXTURL="IO$SHORTID";QURL="$SHORTURL"
          IONAME=`echo $SHOWIONAME      | #
                  tr [:lower:] [:upper:]` #
 
@@ -342,7 +352,14 @@ function SHOWIOS() {
     else echo "SHOWIO IS DONE ($SHOWIONAME)"
     fi
 
-    SHOWIOGRID="${SHOWIOGRID},${TMPKEEP}${IOMKID}MIQ.pdf,{1}"
+    if [ "$DISPLAYMODE" == "NOQR" ]
+    then SHOWIOGRID="${SHOWIOGRID},${TMPKEEP}${IOMKID}MI0.pdf,{1}"
+    elif [ "$DISPLAYMODE" == "NOTXT" ]
+    then SHOWIOGRID="${SHOWIOGRID},${TMPKEEP}${IOMKID}M0Q.pdf,{1}"
+    elif [ "$DISPLAYMODE" == "NOINFO" ]
+    then SHOWIOGRID="${SHOWIOGRID},${TMPKEEP}${IOMKID}M00.pdf,{1}"
+    else SHOWIOGRID="${SHOWIOGRID},${TMPKEEP}${IOMKID}MIQ.pdf,{1}"
+    fi
 
    done
 
