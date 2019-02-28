@@ -1,4 +1,12 @@
 # --------------------------------------------------------------------------- #
+ function conformColor() {
+
+      ( CHECK=$1
+        pdfxgs $CHECK
+      )
+
+  }
+# --------------------------------------------------------------------------- #
 
  function mkpages() {
 
@@ -152,7 +160,7 @@
               # ------------------------------------------------------------ #
                 inkscape --export-pdf=${TMPID}_${NUM}_${LNAME}.pdf \
                          --export-text-to-path ${TMPID}_${NUM}_${LNAME}.svg
-               #conformColor ${TMPID}_${NUM}_${LNAME}.pdf
+                conformColor ${TMPID}_${NUM}_${LNAME}.pdf
                 rm ${TMPID}_${NUM}_${LNAME}.svg
               # ------------------------------------------------------------ #
 
@@ -294,7 +302,8 @@ function SPREAD() {
       SW="1.5"
      sed -i 's/#ffffff\b/#PROTECTWHITE/g'               $SVG
      sed -i 's/#[a-fA-F0-9]\{6\}\b/#000000/g'           $SVG
-     sed -i 's/fill:#000000\b/fill:#e6e6e6/g'           $SVG
+    #sed -i 's/fill:#000000\b/fill:#e6e6e6/g'           $SVG
+     sed -i 's/fill:#000000\b/fill:#fcfcfc/g'           $SVG
      sed -i 's/#PROTECTWHITE/#ffffff/g'                 $SVG
      sed -i "s/stroke-width:[0-9.]*/stroke-width:$SW/g" $SVG
    ) 
