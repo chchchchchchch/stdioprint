@@ -300,7 +300,7 @@ function SHOWIOS() {
         do  TRANSFORM="transform=\"rotate($ROTATE 200 200)\""
             echo "<g $TRANSFORM>"                         >> $IOMKMAIN   #
             CNCTPATHUSE="CNCTPATH$CONNECT"
-            echo ${!CNCTPATHUSE}                          >> $IOMKMAIN   #
+            echo ${CNCTPATHUSE}                           >> $IOMKMAIN   #
             echo "</g>"                                   >> $IOMKMAIN   #
             ROTATE=`expr $ROTATE + 90`
        done
