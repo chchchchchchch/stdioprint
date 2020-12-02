@@ -34,12 +34,15 @@
   if [ `echo $* | sed 's/ /\n/g' | #
         grep -- "^-f$" | wc -l` -gt 0 ];then FORCEWRITE="YES"; fi
 # --
+  FORCEPATH=`echo $* | sed 's/ /\n/g' | #
+             grep "^--out=" | cut -d '=' -f 2`
+  if [ "$FORCEPATH" != "" ];then OUTPATH="$FORCEOUT";fi
+# --
   FORCENAME=`echo $* | sed 's/ /\n/g' | #
              grep "^--name=" | cut -d '=' -f 2`
+# --
   FORCEFORMAT=`echo $* | sed 's/ /\n/g' | #
                grep "^--format=" | cut -d '=' -f 2`
-
-
 # =========================================================================== #
 # CHECK EXIFTOOL
 # --------------------------------------------------------------------------- #
@@ -245,14 +248,13 @@
    do
       SRCNAME=`basename "$SRC" | cut -d "." -f 1`
       SRCPATH=`echo "$SRC" | rev | cut -d "/" -f 2- | rev`
-      OUTPATH="${SRCPATH}/${OUTDIR}"
-      if [ ! -d "$OUTPATH" ];then mkdir -p "$OUTPATH";fi
       if [ "$FORCENAME" == "" ]
       then  OUTNAME="$SRCNAME";else OUTNAME="$FORCENAME";fi
+      if [ "$FORCEPATH" == "" ]
+      then  OUTPATH="${SRCPATH}/${OUTDIR}";else OUTPATH="$FORCEPATH";fi
+      if [ ! -d "$OUTPATH" ];then mkdir -p "$OUTPATH";fi
 
-
-
-      saveOptimized "$SRC" "${SRCPATH}/${OUTDIR}/${OUTNAME}"
+      saveOptimized "$SRC" "${OUTPATH}/${OUTNAME}"
 
   done
 # =========================================================================== #
