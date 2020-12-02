@@ -167,14 +167,12 @@
           sed -i "1s,^.*$,&\n$SRCSTAMP,"  ${SAVETHIS}.svg
         fi
       # ----------------------------------------------------------- #     
-        for SAVETHISOLD in `ls ${SAVETHIS}.*                | #
-                            egrep -v "\.${SAVETHISFORMAT}$" | #
+        for SAVETHISOLD in `ls ${SAVETHIS}.*                      | #
+                            egrep -v "\.${SAVETHISFORMAT}$"       | #
                             egrep -v "\.layers$|\.head$|\.original$"`
          do if [ -f "$SAVETHISOLD" ] &&
                [ `realpath $SAVETHISOLD` != `realpath $EDITSRC` ]
-            then
-                  rm "$SAVETHISOLD"
-            fi
+            then  rm "$SAVETHISOLD";fi
         done
      fi
    # --------------------------------------------------------------------- #
