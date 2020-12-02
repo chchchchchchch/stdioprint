@@ -46,6 +46,10 @@
 # --
   CROP=`echo $* | sed 's/ /\n/g' | #
         grep "^--crop=" | cut -d '=' -f 2`
+# --
+  LAYERS="="`echo $* | sed 's/ /\n/g' | #
+             grep "^--layers=" | cut -d '=' -f 2`
+# --
 # =========================================================================== #
 # CHECK EXIFTOOL
 # --------------------------------------------------------------------------- #
@@ -82,24 +86,32 @@
     head -n 1   ${EDITSRC}.layers > ${EDITSRC}.head # GET HEAD
     sed -i '1d' ${EDITSRC}.layers                   # GET LAYERS (RM LINE 1)
   # ----   
-    LAYERS=`cat ${EDITSRC}.layers            | # USELESS USE OF CAT
-            sed  '/^<g/s/pe:label/\nlabel/'  | # PUT NAME LABEL ON NL
-            grep '^label' | cut -d "\"" -f 2 | # EXTRACT NAME 
-            sort -u`                           # SORT/UNIQ
+    if [ `echo $LAYERS | grep "^=" | wc -c` -gt 2 ]
+    then  LAYERS=`echo $LAYERS     | #
+                  sed 's/^=//'     | #
+                  sed 's/[,.|]/ /g'`
+    elif [ `grep "SPLIT LAYERS" ${EDITSRC}.original | wc -l` -gt 0 ]
+    then    LAYERS=`cat ${EDITSRC}.layers            | # USELESS USE OF CAT
+                    sed  '/^<g/s/pe:label/\nlabel/'  | # PUT NAME LABEL ON NL
+                    grep '^label' | cut -d "\"" -f 2 | # EXTRACT NAME 
+                    sort -u`                           # SORT/UNIQ
+    else    LAYERS=""
+    fi
   # ----   
-    if [ `grep "SPLIT LAYERS" ${EDITSRC}.original | wc -l` -gt 0 ]
-    then LAYERSELECT="$LAYERS"
-         SAVEPATH=`echo $SAVETHIS | rev  | #
-                   cut -d "/" -f 2- | rev` #
-    else LAYERSELECT=".";SPLITLAYERS="false";fi
+    if [ "$LAYERS" != "" ]
+    then  LAYERSELECT="$LAYERS"
+          SAVEPATH=`echo $SAVETHIS | rev  | #
+                    cut -d "/" -f 2- | rev` #
+    else  LAYERSELECT=".";SPLITLAYERS="false";fi
    # ---------------------------------------------------------------- #
     for LAYERGREP in $LAYERSELECT 
      do
       # ----------------------------------------------------------- #
-        if [ "$SPLITLAYERS" != "false" ];then  
-              SAVENAME=`echo $LAYERGREP | #
-                        sed 's/[^-\_a-zA-Z0-9]*//g'`
-              SAVETHIS="$SAVEPATH/$SAVENAME"
+        if [ "$FORCENAME" == "" ] &&
+           [ "$SPLITLAYERS" != "false" ]
+        then SAVENAME=`echo $LAYERGREP | #
+                       sed 's/[^-\_a-zA-Z0-9]*//g'`
+             SAVETHIS="$SAVEPATH/${OUTNAME}_$SAVENAME"
         fi
       # ----------------------------------------------------------- #     
         checkOutput ${EDITSRC} ${SAVETHIS}
