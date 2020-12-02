@@ -43,6 +43,9 @@
 # --
   FORCEFORMAT=`echo $* | sed 's/ /\n/g' | #
                grep "^--format=" | cut -d '=' -f 2`
+# --
+  CROP=`echo $* | sed 's/ /\n/g' | #
+        grep "^--crop=" | cut -d '=' -f 2`
 # =========================================================================== #
 # CHECK EXIFTOOL
 # --------------------------------------------------------------------------- #
@@ -121,6 +124,7 @@
     
         # PIXEL: BASE EXPORT (PNG)                                 #
         # -------------------------------------------------------- #
+          cropArea $EDITSRC $CROP
           inkscape --export-png=${SAVETHIS}.png \
                    --export-background-opacity=0   \
                    $EDITSRC > /dev/null 2>&1
@@ -166,6 +170,7 @@
           echo -e "\e[102m\e[97m SAVE ${SAVETHIS}.svg \e[0m";
           SAVETHISFORMAT="svg"
           sed -i 's/opacity:[0-9\.]*/opacity:1/g' $EDITSRC
+          cropArea $EDITSRC $CROP
           inkscape --export-pdf=${SAVETHIS}.pdf \
                    -T $EDITSRC > /dev/null 2>&1
           inkscape --export-plain-svg=${SAVETHIS}.svg \
@@ -238,6 +243,41 @@
      fi
 
     fi
+  }
+# =========================================================================== #
+  function cropArea() {
+ 
+     SRC="$1";CROP="$2"
+ 
+     if [ "$CROP" !=  "" ];then # echo "CROPAREA IS SET"
+ 
+     XAREA=`echo $CROP | cut -d ":" -f 1`
+     YAREA=`echo $CROP | cut -d ":" -f 2`
+     WAREA=`echo $CROP | cut -d ":" -f 3`
+     HAREA=`echo $CROP | cut -d ":" -f 4`
+ 
+     XSHIFT=`python -c "print $XAREA * -1"`
+     YSHIFT=`python -c "print $YAREA * -1"`
+     WSHIFT="width=\"$WAREA\"";HSHIFT="height=\"$HAREA\""
+     TRANSFORM="transform=\"translate(${XSHIFT},${YSHIFT})\""
+ 
+     BFOO=N`echo ${RANDOM} | cut -c 4`F0;
+   # ----------------------------------------------------------------------- #
+   # MOVE LAYERS ON SEPARATE LINES (TEMPORARILY; EASIFY PARSING LATER ON)
+   # ----------------------------------------------------------------------- #
+     sed ":a;N;\$!ba;s/\n/$BFOO/g" $SRC    | # RM ALL LINEBREAKS (BUT SAVE)
+     sed "s/width=\"[^\"]*\"/$WSHIFT/"     | # REDEFINE (FIRST) WIDTH
+     sed "s/height=\"[^\"]*\"/$HSHIFT/"    | # REDEFINE (FIRST) HEIGHT
+     sed "s/</\n&/g" | sed "s/>/&\n/g"     | # ADD LINEBREAKS TO BRACKETS <>
+     sed "/^<svg/s/>/&<g $TRANSFORM>/"     | # START OUTER GROUP
+     sed ":a;N;\$!ba;s/\n//g"              | # RM ALL LINEBREAKS
+     sed "s/$BFOO/\n/g"                    | # RESTORE LINEBREAKS
+     sed "s/<\/svg/<\/g>&/"                | # CLOSE OUTER GROUP
+     sed 's/display:none/display:inline/g' | # DISPLAY ALL
+     tee > tmp;mv tmp $SRC                   # WRITE TO FILE/MOVE IN PLACE
+
+
+     fi
   }
 # =========================================================================== #
 # ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| #
