@@ -4,34 +4,38 @@
 # =========================================================================== #
 # SET VARIABLES 
 # --------------------------------------------------------------------------- #
-  SRCROOT="../E" # START HERE IF NO INPUT PROVIDED
-   SRCDIR="E"    # NAME PATTERN 
-   OUTDIR="."    # RELATIVE TO EACH SOURCE FILE (. = SAME)
   SCRIPTURL="http://freeze.sh/utils/edit2www.sh"
-  SHPATH=`dirname \`readlink -f $0\``
+    SRCROOT="../E" # START HERE IF NO INPUT PROVIDED
+     SRCDIR="E"    # NAME PATTERN 
+     OUTDIR="."    # RELATIVE TO EACH SOURCE FILE (. = SAME)
+     SHPATH=`dirname \`readlink -f $0\``
 # =========================================================================== #
 # CHECK INPUT
 # --------------------------------------------------------------------------- #
-  ARGUMENTS=`echo $* | sed 's/ -[a-z]\b//g'`
+  ARGUMENTS=`echo $*              | # ALL CLI PARAMETERS
+             sed 's/ /\n/g'       | # SPACES TO NEWLINES
+             grep -v "^-"`          # FILTER OUT --FLAGS
   if [ `echo $ARGUMENTS | wc -c` -gt 1  ]
-   then if [ -f `echo $ARGUMENTS | sed 's/\.svg$//'`.svg ]
-        then SVGALL=`echo $ARGUMENTS | sed 's/\.svg$//'`.svg
-        elif [ -d $ARGUMENTS ]
-        then SVGALL=`find $ARGUMENTS -name "*.svg"  | #
-                     grep "$SRCDIR/" | grep "\.svg$"`
-        else echo "SOMETHING SEEMS WRONG";exit 0;fi
-   else SVGALL=`find $SRCROOT -name "*.svg" | #
-                grep "$SRCDIR/" | grep "\.svg$"`
-        N=`echo $SVGALL | sed 's/ /\n/g' | wc -l`
-        echo -e "$N FILES TO PROCESS. \
-                THIS WILL TAKE SOME TIME.\n" | tr -s ' '
-        read -p "SHOULD WE DO IT? [y/n] " ANSWER
-        if [ X$ANSWER != Xy ];then echo "BYE.";exit 1;
-                              else echo; fi
+  then if [ -f `echo $ARGUMENTS | sed 's/\.svg$//'`.svg ]
+       then SVGALL=`echo $ARGUMENTS | sed 's/\.svg$//'`.svg
+       elif [ -d $ARGUMENTS ]
+       then SVGALL=`find $ARGUMENTS -name "*.svg"  | #
+                    grep "$SRCDIR/" | grep "\.svg$"`
+       else echo "SOMETHING SEEMS WRONG";exit 0;fi
+  else SVGALL=`find $SRCROOT -name "*.svg" | #
+               grep "$SRCDIR/" | grep "\.svg$"`
+       N=`echo $SVGALL | sed 's/ /\n/g' | wc -l`
+       echo -e "$N FILES TO PROCESS. \
+               THIS WILL TAKE SOME TIME.\n" | tr -s ' '
+       read -p "SHOULD WE DO IT? [y/n] " ANSWER
+       if [ "$ANSWER" != y ];then echo "BYE.";exit 1;else echo;fi
   fi
 # --
   if [ `echo $* | sed 's/ /\n/g' | #
-        grep -- "-f" | wc -l` -gt 0 ];then FORCEWRITE="YES"; fi
+        grep -- "^-f$" | wc -l` -gt 0 ];then FORCEWRITE="YES"; fi
+# --
+  FORCEFORMAT=`echo $* | sed 's/ /\n/g' | #
+               grep "^--format=" | cut -d '=' -f 2`
 # =========================================================================== #
 # CHECK EXIFTOOL
 # --------------------------------------------------------------------------- #
@@ -87,11 +91,11 @@
                         sed 's/[^-\_a-zA-Z0-9]*//g'`
               SAVETHIS="$SAVEPATH/$SAVENAME"
         fi
-
+      # ----------------------------------------------------------- #     
         checkOutput ${EDITSRC} ${SAVETHIS}
-
+      # ----------------------------------------------------------- #     
         if [ "$DOSAVE" == 1 ];then
-
+      # ----------------------------------------------------------- #     
         cat ${EDITSRC}.head                            >  ${EDITSRC}
         if [ "$SPLITLAYERS" != "false" ];then  
         egrep "label=\"$LAYERGREP\"" ${EDITSRC}.layers >> ${EDITSRC}
@@ -100,70 +104,78 @@
         fi
         echo  "</svg>"                                 >> ${EDITSRC}
         sed -i "s/$S/ /g" ${EDITSRC} ; sed -i "s/$B/\n/g" ${EDITSRC}
-      # ----------------------------------------------------------- #
-     
-       # HOW TO SAVE OPTIMIZED
-       # ---------------------
-       # echo -e "\e[34mCHECK $EDITSRC\e[0m"
-         HASIMG=`grep "<image" $EDITSRC | wc -l`
-         if [ $HASIMG -gt 0 ];then
-     
-         # PIXEL: BASE EXPORT (PNG)                                 #
-         # -------------------------------------------------------- #
-           inkscape --export-png=${SAVETHIS}.png \
-                    --export-background-opacity=0   \
-                    $EDITSRC > /dev/null 2>&1
-           NUMCOLOR=`convert ${SAVETHIS}.png -format %c \
-                     -depth 8  histogram:info:- | #
-                     sed '/^[[:space:]]*$/d' | wc -l`
-           NOTRANSPARENCY=`convert ${SAVETHIS}.png \
-                           -format "%[opaque]" info:`
-     
-           if [ X$NOTRANSPARENCY = "Xtrue" ];then
-     
-           # NOT TRANSPARENT: COMPRESS (JPG/GIF)                    #
-           # ------------------------------------------------------ #
-             if [ $NUMCOLOR -lt 256 ]
-             then echo -e "\e[42m SAVE ${SAVETHIS}.gif \e[0m";
-                  convert ${SAVETHIS}.png \
-                          ${SAVETHIS}.gif
-                  SAVETHISFORMAT="gif"
-             else echo -e "\e[42m SAVE ${SAVETHIS}.jpg \e[0m";
-                  convert ${SAVETHIS}.png \
-                          -quality 90 \
-                          ${SAVETHIS}.jpg
-                  SAVETHISFORMAT="jpg"
-             fi
-           # ------------------------------------------------------ #
-           else  echo -e "\e[42m SAVE ${SAVETHIS}.png \e[0m"
-                 SAVETHISFORMAT="png"
-           fi;   SAVED=`ls ${SAVETHIS}.${SAVETHISFORMAT} | #
-                        head -n 1`
-                 if [ "$EXIF" == ON ]
-                 then exiftool -Software="$SCRIPTURL" \
-                      -Source="$MD5SRC" $SAVED > /dev/null 2>&1
-                 fi
-         else
-     
-         # VECTOR: BREAK FONTS, FORGET ABOUT HIDDEN STUFF         #
-         # ------------------------------------------------------ #
-           echo -e "\e[102m\e[97m SAVE ${SAVETHIS}.svg \e[0m";
-           sed -i 's/opacity:[0-9\.]*/opacity:1/g' $EDITSRC
-           inkscape --export-pdf=${SAVETHIS}.pdf \
-                    -T $EDITSRC > /dev/null 2>&1
-           inkscape --export-plain-svg=${SAVETHIS}.svg \
-                    ${SAVETHIS}.pdf > /dev/null 2>&1
-           SAVETHISFORMAT="svg"
-           SRCSTAMP="<!-- $MD5SRC ("`date +%d.%m.%Y" "%T`")-->"
+      # ----------------------------------------------------------- #     
+      # HOW TO SAVE OPTIMIZED
+      # ---------------------
+        HASIMG=`grep "<image" $EDITSRC | wc -l`
+        if [ $HASIMG -gt 0 ] ||
+           [ "$FORCEFORMAT" != "svg" ]
+        then
+    
+        # PIXEL: BASE EXPORT (PNG)                                 #
+        # -------------------------------------------------------- #
+          inkscape --export-png=${SAVETHIS}.png \
+                   --export-background-opacity=0   \
+                   $EDITSRC > /dev/null 2>&1
+          NUMCOLOR=`convert ${SAVETHIS}.png -format %c \
+                    -depth 8  histogram:info:- | #
+                    sed '/^[[:space:]]*$/d' | wc -l`
+          NOTRANSPARENCY=`convert ${SAVETHIS}.png \
+                          -format "%[opaque]" info:`
+    
+          if [ "$FORCEFORMAT" != "" ]
+          then SAVETHISFORMAT="$FORCEFORMAT"
+               echo -e "\e[42m SAVE ${SAVETHIS}.$SAVETHISFORMAT \e[0m";
+               convert ${SAVETHIS}.png ${SAVETHIS}.$SAVETHISFORMAT
 
-           sed -i "1s,^.*$,&\n$SRCSTAMP,"  ${SAVETHIS}.svg
+          elif [ "$NOTRANSPARENCY" = "true" ];then
+    
+          # NOT TRANSPARENT: COMPRESS (JPG/GIF)                    #
+          # ------------------------------------------------------ #
+            if [ $NUMCOLOR -lt 256 ]
+            then echo -e "\e[42m SAVE ${SAVETHIS}.gif \e[0m";
+                 convert ${SAVETHIS}.png \
+                         ${SAVETHIS}.gif
+                 SAVETHISFORMAT="gif"
+            else echo -e "\e[42m SAVE ${SAVETHIS}.jpg \e[0m";
+                 convert ${SAVETHIS}.png \
+                         -quality 90 \
+                         ${SAVETHIS}.jpg
+                 SAVETHISFORMAT="jpg"
+            fi
+          # ------------------------------------------------------ #
+          else  echo -e "\e[42m SAVE ${SAVETHIS}.png \e[0m"
+                SAVETHISFORMAT="png"
+          fi;   SAVED=`ls ${SAVETHIS}.${SAVETHISFORMAT} | #
+                       head -n 1`
+                if [ "$EXIF" == ON ]
+                then exiftool -Software="$SCRIPTURL" \
+                     -Source="$MD5SRC" $SAVED > /dev/null 2>&1
+                fi
+        else
+    
+        # VECTOR: BREAK FONTS, FORGET ABOUT HIDDEN STUFF         #
+        # ------------------------------------------------------ #
+          echo -e "\e[102m\e[97m SAVE ${SAVETHIS}.svg \e[0m";
+          SAVETHISFORMAT="svg"
+          sed -i 's/opacity:[0-9\.]*/opacity:1/g' $EDITSRC
+          inkscape --export-pdf=${SAVETHIS}.pdf \
+                   -T $EDITSRC > /dev/null 2>&1
+          inkscape --export-plain-svg=${SAVETHIS}.svg \
+                   ${SAVETHIS}.pdf > /dev/null 2>&1
+          SRCSTAMP="<!-- $MD5SRC ("`date +%d.%m.%Y" "%T`")-->"
+          sed -i "1s,^.*$,&\n$SRCSTAMP,"  ${SAVETHIS}.svg
         fi
-          for SAVETHISOLD in `ls ${SAVETHIS}.* | #
-                              grep -v ".${SAVETHISFORMAT}$"`
-                   do if [ -f "$SAVETHISOLD" ];then
-                           rm "$SAVETHISOLD"
-                      fi
-                  done
+      # ----------------------------------------------------------- #     
+        for SAVETHISOLD in `ls ${SAVETHIS}.*                | #
+                            egrep -v "\.${SAVETHISFORMAT}$" | #
+                            egrep -v "\.layers$|\.head$|\.original$"`
+         do if [ -f "$SAVETHISOLD" ] &&
+               [ `realpath $SAVETHISOLD` != `realpath $EDITSRC` ]
+            then
+                  rm "$SAVETHISOLD"
+            fi
+        done
      fi
    # --------------------------------------------------------------------- #
      done
@@ -178,44 +190,50 @@
                                     rev              | #
                                     cut -d "/" -f 2- | #
                                     rev`               #
+    if [ "$FORCEFORMAT" == "" ]
+    then EXT='*'
+    else EXT="$FORCEFORMAT"; fi
 
-    SAVED=`ls -t ${OUTPUT}.* 2> /dev/null      | #
+    SAVED=`ls -t ${OUTPUT}.${EXT} 2> /dev/null      | #
            egrep '\.jpg$|\.gif$|\.png$|\.svg$' | #
            head -n 1`
 
     if [ ! -f $SAVED ] || [ "$SAVED" == "" ]
     then echo "NO WWW VERSION";DOSAVE=1
     else 
-         if [ `realpath $SAVED` == `realpath $SOURCE` ]
-         then  echo -e "\e[101m\e[97m SOURCE == TARGET ($SOURCE) \e[0m";
-               DOSAVE=0
-         elif [ "$SAVED" -nt "$SOURCE" ] &&
-              [ "$FORCEWRITE" != "YES"  ]
-         then   echo "$SAVED IS UP-TO-DATE ($SOURCE)"
-                DOSAVE=0
-         else # -------------------------------------------------------- #
-                if [ "$EXIF" == "ON" ] &&
-                   [ `echo $SAVED | grep -v "\.svg$" | wc -l` -gt 0 ]
-                then  MD5OUT=`exiftool $SAVED | #
-                              grep "^Source[ ]*:[ ]*[a-f0-9]*" | #
-                              cut -d ":" -f 2 | #
-                              sed 's/[^a-f0-9]*//g'`
-                fi
-                if [ `echo $SAVED | grep "\.svg$" | wc -l` -gt 0 ]
-                then  MD5OUT=`grep '<!-- [a-f0-9]' $SAVED | #
-                              cut -d " " -f 2`
-                fi
-              # -------------------------------------------------------- #
-                if [ "$MD5OUT" != "$MD5SRC" ]
-                then  echo -e "\e[31m$SAVED NEEDS UPDATE\e[0m ($SOURCE)"
-                      DOSAVE=1
-                else  echo "$SAVED IS UP-TO-DATE ($SOURCE)"
-                      DOSAVE=0
-                fi
-              # -------------------------------------------------------- #
-         fi
-    fi
 
+     if [ `realpath $SAVED` == `realpath $SOURCE` ]
+     then  echo -e "\e[101m\e[97m SOURCE == TARGET ($SOURCE) \e[0m";
+           DOSAVE=0
+     elif [ "$SAVED" -nt "$SOURCE" ] && [ "$FORCEWRITE" != "YES"  ]
+     then   echo "$SAVED IS UP-TO-DATE ($SOURCE)"
+            DOSAVE=0
+     else # -------------------------------------------------------- #
+            if [ "$EXIF" == "ON" ] &&
+               [ `echo $SAVED | grep -v "\.svg$" | wc -l` -gt 0 ]
+            then  MD5OUT=`exiftool $SAVED | #
+                          grep "^Source[ ]*:[ ]*[a-f0-9]*" | #
+                          cut -d ":" -f 2 | #
+                          sed 's/[^a-f0-9]*//g'`
+            fi
+            if [ `echo $SAVED | grep "\.svg$" | wc -l` -gt 0 ]
+            then  MD5OUT=`grep '<!-- [a-f0-9]' $SAVED | #
+                          cut -d " " -f 2`
+            fi
+          # -------------------------------------------------------- #
+            if [ "$MD5OUT" != "$MD5SRC" ]
+            then  echo -e "\e[31m$SAVED NEEDS UPDATE\e[0m ($SOURCE)"
+                  DOSAVE=1
+            elif [ "$FORCEWRITE" == "YES" ]
+            then  echo -e "\e[31m$SAVED FORCE UPDATE\e[0m ($SOURCE)"
+                  DOSAVE=1
+            else  echo "$SAVED IS UP-TO-DATE ($SOURCE)"
+                  DOSAVE=0
+            fi
+          # -------------------------------------------------------- #
+     fi
+
+    fi
   }
 # =========================================================================== #
 # ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| #
@@ -227,9 +245,10 @@
       SRCNAME=`basename "$SRC" | cut -d "." -f 1`
       SRCPATH=`echo "$SRC" | rev | cut -d "/" -f 2- | rev`
       OUTPATH="${SRCPATH}/${OUTDIR}"
+      OUTNAME="$SRCNAME"
 
       if [ ! -d "$OUTPATH" ];then mkdir -p "$OUTPATH";fi
-      saveOptimized "$SRC" "${SRCPATH}/${OUTDIR}/${SRCNAME}"
+      saveOptimized "$SRC" "${SRCPATH}/${OUTDIR}/${OUTNAME}"
 
   done
 # =========================================================================== #
