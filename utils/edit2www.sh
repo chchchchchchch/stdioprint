@@ -34,8 +34,12 @@
   if [ `echo $* | sed 's/ /\n/g' | #
         grep -- "^-f$" | wc -l` -gt 0 ];then FORCEWRITE="YES"; fi
 # --
+  FORCENAME=`echo $* | sed 's/ /\n/g' | #
+             grep "^--name=" | cut -d '=' -f 2`
   FORCEFORMAT=`echo $* | sed 's/ /\n/g' | #
                grep "^--format=" | cut -d '=' -f 2`
+
+
 # =========================================================================== #
 # CHECK EXIFTOOL
 # --------------------------------------------------------------------------- #
@@ -189,10 +193,9 @@
                                     cut -d "/" -f 2- | #
                                     rev`               #
     if [ "$FORCEFORMAT" == "" ]
-    then EXT='*'
-    else EXT="$FORCEFORMAT"; fi
+    then EXT='*';else EXT="$FORCEFORMAT";fi
 
-    SAVED=`ls -t ${OUTPUT}.${EXT} 2> /dev/null      | #
+    SAVED=`ls -t ${OUTPUT}.${EXT} 2> /dev/null | #
            egrep '\.jpg$|\.gif$|\.png$|\.svg$' | #
            head -n 1`
 
@@ -243,9 +246,12 @@
       SRCNAME=`basename "$SRC" | cut -d "." -f 1`
       SRCPATH=`echo "$SRC" | rev | cut -d "/" -f 2- | rev`
       OUTPATH="${SRCPATH}/${OUTDIR}"
-      OUTNAME="$SRCNAME"
-
       if [ ! -d "$OUTPATH" ];then mkdir -p "$OUTPATH";fi
+      if [ "$FORCENAME" == "" ]
+      then  OUTNAME="$SRCNAME";else OUTNAME="$FORCENAME";fi
+
+
+
       saveOptimized "$SRC" "${SRCPATH}/${OUTDIR}/${OUTNAME}"
 
   done
