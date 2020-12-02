@@ -34,9 +34,9 @@
   if [ `echo $* | sed 's/ /\n/g' | #
         grep -- "^-f$" | wc -l` -gt 0 ];then FORCEWRITE="YES"; fi
 # --
-  FORCEPATH=`echo $* | sed 's/ /\n/g' | #
-             grep "^--out=" | cut -d '=' -f 2`
-  if [ "$FORCEPATH" != "" ];then OUTPATH="$FORCEOUT";fi
+  FORCEPATH=`echo $* | sed 's/ /\n/g'      | #
+             grep "^--out="                | #
+             cut -d '=' -f 2 | sed 's,/$,,'` #
 # --
   FORCENAME=`echo $* | sed 's/ /\n/g' | #
              grep "^--name=" | cut -d '=' -f 2`
