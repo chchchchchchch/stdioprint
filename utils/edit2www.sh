@@ -49,19 +49,38 @@
           function forceFormat() {
           SAVETHIS="$1";SAVETHISFORMAT="jpg"
           echo -e "\e[42m SAVE ${SAVETHIS}.(ANTI)jpg \e[0m";
-          convert ${SAVETHIS}.png -flatten \
-                  -fuzz 2% -transparent white \
+          convert ${SAVETHIS}.png -flatten           \
+                  -fuzz 2% -transparent white        \
                   white.png
-          convert white.png \
-                  -alpha extract -negate \
+          convert white.png -alpha extract -negate   \
                   alpha.png
-          convert ${SAVETHIS}.png -flatten     \
-                  -modulate 100,60 -seed 1000   \
-                 -attenuate 0.25 +noise gaussian \
-                 -quality 100 tmp.jpg
+          convert ${SAVETHIS}.png -colorspace Gray   \
+                 -quality  80 q01.jpg
+          convert ${SAVETHIS}.png -colorspace Gray   \
+                 -quality 100 q02.jpg
+          compare q01.jpg q02.jpg                    \
+                 -fuzz 0.1% -compose src             \
+                 -highlight-color White              \
+                 -lowlight-color                     \
+                  Black diff.png
+          convert ${SAVETHIS}.png                    \
+                 -flatten -modulate 95,70            \
+                 -seed 1000 -attenuate 0.3           \
+                 +noise gaussian -quality 100        \
+                  noise.jpg
+          convert ${SAVETHIS}.png noise.jpg          \
+               \( diff.png -blur 0x20      \
+                           -attenuate 0.5  \
+                           +noise gaussian \)        \
+                 -composite -seed 1000               \
+                 -modulate 100,75 -attenuate 0.30    \
+                 -level 5%,95%                       \
+                 +noise gaussian -quality 90         \
+                  tmp.jpg
           composite -compose Screen alpha.png tmp.jpg \
                     -quality 100 ${SAVETHIS}.$SAVETHISFORMAT
-          rm white.png alpha.png tmp.jpg
+          rm white.png alpha.png noise.jpg q01.jpg q02.jpg tmp.jpg
+
           }
         # ------------------------ #
    else   function forceFormat() {
