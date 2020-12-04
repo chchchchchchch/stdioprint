@@ -149,7 +149,9 @@
           if [ "$FORCEFORMAT" != "" ]
           then SAVETHISFORMAT="$FORCEFORMAT"
                echo -e "\e[42m SAVE ${SAVETHIS}.$SAVETHISFORMAT \e[0m";
-               convert ${SAVETHIS}.png ${SAVETHIS}.$SAVETHISFORMAT
+               convert ${SAVETHIS}.png \
+                       -quality 100    \
+                       ${SAVETHIS}.$SAVETHISFORMAT
 
           elif [ "$NOTRANSPARENCY" = "true" ];then
     
@@ -162,7 +164,7 @@
                  SAVETHISFORMAT="gif"
             else echo -e "\e[42m SAVE ${SAVETHIS}.jpg \e[0m";
                  convert ${SAVETHIS}.png \
-                         -quality 90 \
+                         -quality 100    \
                          ${SAVETHIS}.jpg
                  SAVETHISFORMAT="jpg"
             fi
