@@ -30,7 +30,7 @@
        read -p "SHOULD WE DO IT? [y/n] " ANSWER
        if [ "$ANSWER" != y ];then echo "BYE.";exit 1;else echo;fi
   fi
-# --
+# --------------------------------------------------------------------------- #
   if [ `echo $* | sed 's/ /\n/g' | #
         grep -- "^-f$" | wc -l` -gt 0 ];then FORCEWRITE="YES"; fi
 # --
@@ -40,10 +40,39 @@
 # --
   FORCENAME=`echo $* | sed 's/ /\n/g' | #
              grep "^--name=" | cut -d '=' -f 2`
-# --
+# --------------------------------------------------------------------------- #
   FORCEFORMAT=`echo $* | sed 's/ /\n/g' | #
                grep "^--format=" | cut -d '=' -f 2`
-# --
+ # --                                                                     -- #
+   if [ "$FORCEFORMAT" == "anti-jpg" ]
+   then # ------------------------ #
+          function forceFormat() {
+          SAVETHIS="$1";SAVETHISFORMAT="jpg"
+          echo -e "\e[42m SAVE ${SAVETHIS}.(ANTI)jpg \e[0m";
+          convert ${SAVETHIS}.png -flatten \
+                  -fuzz 2% -transparent white \
+                  white.png
+          convert white.png \
+                  -alpha extract -negate \
+                  alpha.png
+          convert ${SAVETHIS}.png -flatten     \
+                  -modulate 100,60 -seed 1000   \
+                 -attenuate 0.25 +noise gaussian \
+                 -quality 100 tmp.jpg
+          composite -compose Screen alpha.png tmp.jpg \
+                    -quality 100 ${SAVETHIS}.$SAVETHISFORMAT
+          rm white.png alpha.png tmp.jpg
+          }
+        # ------------------------ #
+   else   function forceFormat() {
+          SAVETHIS="$1";SAVETHISFORMAT="$2"
+          echo -e "\e[42m SAVE ${SAVETHIS}.$SAVETHISFORMAT \e[0m";
+          convert ${SAVETHIS}.png -quality 100 \
+                  ${SAVETHIS}.$SAVETHISFORMAT
+          }
+   fi
+ # --                                                                     -- #
+# --------------------------------------------------------------------------- #
   CROP=`echo $* | sed 's/ /\n/g' | #
         grep "^--crop=" | cut -d '=' -f 2`
 # --
@@ -147,12 +176,7 @@
                           -format "%[opaque]" info:`
     
           if [ "$FORCEFORMAT" != "" ]
-          then SAVETHISFORMAT="$FORCEFORMAT"
-               echo -e "\e[42m SAVE ${SAVETHIS}.$SAVETHISFORMAT \e[0m";
-               convert ${SAVETHIS}.png \
-                       -quality 100    \
-                       ${SAVETHIS}.$SAVETHISFORMAT
-
+          then  forceFormat ${SAVETHIS} $FORCEFORMAT
           elif [ "$NOTRANSPARENCY" = "true" ];then
     
           # NOT TRANSPARENT: COMPRESS (JPG/GIF)                    #
